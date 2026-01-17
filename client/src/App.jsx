@@ -1,15 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import SearchBar from './components/SearchBar';
-import FacultyProfile from './pages/FacultyProfile';
-import Admin from './pages/Admin';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import CampusMap from './pages/CampusMap';
-import Departments from './pages/Departments';
-import Programs from './pages/Programs';
-import FacultyList from './pages/FacultyList';
+import SearchBar from './SearchBar';
+import FacultyProfile from './FacultyProfile';
+import Admin from './Admin';
+import Login from './Login';
+import Signup from './Signup';
+import Dashboard from './Dashboard';
+import CampusMap from './CampusMap';
+import Departments from './Departments';
+import Programs from './Programs';
+import FacultyList from './FacultyList';
 
 function App() {
     return (
