@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { API_URL } from '../config';
+import { API_URL } from './config';
 
 const FacultyProfile = () => {
     const { id } = useParams();
