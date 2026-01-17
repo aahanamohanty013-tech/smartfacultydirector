@@ -1,66 +1,93 @@
-# Smart Faculty Directory & Campus Navigator
+# Smart Faculty Directory 🎓
 
-A React.js + Node.js application to find faculty members, check their real-time availability, and view their weekly schedule.
+A modern, full-stack web application designed to helping students navigate campus and find faculty members efficiently. It combines a beautiful **Glassmorphism UI** with intelligent backend algorithms to show real-time faculty availability.
 
-## Features
-- **Instant Search**: Trie-based autocomplete for fast lookups.
-- **Real-time Availability**: "Likely Available" or "In Class" status based on schedule.
-- **Best Visiting Time**: Intelligently suggests the next free slot.
-- **Admin Dashboard**: Manage faculty profiles and class schedules.
+## ✨ Key Features
 
-## Prerequisites
-- **Node.js**: [Download](https://nodejs.org/)
-- **PostgreSQL**: [Download](https://www.postgresql.org/download/)
+### 🔍 Smart Search (Trie Algorithm)
+- **Instant Autocomplete**: Uses a customized Trie data structure for O(L) search complexity.
+- **Keyword Search**: Find faculty not just by name, but by department, specialization, or shortform (e.g., "AS" for Anjali Sharma).
 
-## Setup Instructions
+### ⏱️ Real-Time Availability Intelligence
+- **"Likely Available" vs "In Class"**: The system cross-references the current time with faculty timetables to infer status.
+- **Best Visiting Time**: Automatically calculates the *next* free slot in a professor's schedule and suggests it (e.g., "Free after 2:30 PM").
 
-### 1. Database Setup
-1. Make sure PostgreSQL is running.
-2. Create the database:
-   ```bash
-   createdb -U postgres smart_faculty
-   ```
-   *(If your user is not `postgres`, adjust accordingly).*
-3. Seed the database tables:
-   ```bash
-   psql -U postgres -d smart_faculty -f database/schema.sql
-   ```
+### 🎨 Modern UI/UX
+- **Glassmorphism Design**: Features a premium purple/blue gradient aesthetic with frosted glass cards.
+- **Responsive**: Fully optimized for desktop and mobile use.
+- **Dedicated Pages**:
+  - **Departments**: Visual grid of all engineering departments.
+  - **Programs**: List of academic programs offered.
+  - **Campus Map**: Integrated map view for navigation.
 
-### 2. Backend Setup
-1. Navigate to the server folder:
-   ```bash
-   cd server
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the server:
-   ```bash
-   npm start
-   ```
-   *The server runs on http://localhost:5000*
+### 🛠️ Admin Dashboard
+- **Manage Faculty**: Add new faculty members with details like Room No, Floor, and Specialization.
+- **Timetable Management**: Interface to add/edit weekly class schedules.
 
-### 3. Frontend Setup
-1. Open a new terminal and navigate to the client folder:
-   ```bash
-   cd client
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the React app:
-   ```bash
-   npm run dev
-   ```
-4. Open the link shown (usually http://localhost:5173).
+---
 
-## Default Login / Config
-- **Database Config**: The app attempts to connect to local Postgres with user `postgres` and password `password`. 
-  - To change this, create a `.env` file in `server/` with:
-    ```
-    DB_USER=your_user
-    DB_PASSWORD=your_password
-    DB_NAME=smart_faculty
-    ```
+## 🏗️ Technology Stack
+
+- **Frontend**: React.js, Vite, Tailwind CSS (Glassmorphism)
+- **Backend**: Node.js, Express.js
+- **Database**: PostgreSQL (Relational Data Model)
+- **Algorithm**: In-Memory Trie for Search Optimization
+- **Deployment**: Vercel (Serverless Architecture)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v14+)
+- PostgreSQL (Local or Cloud)
+
+### 1. Installation
+Clone the repository:
+```bash
+git clone https://github.com/your-username/smart-faculty-directory.git
+cd smart-faculty-directory
+```
+
+### 2. Database Setup
+1. Create a PostgreSQL database named `smart_faculty`.
+2. Run the schema script to create tables:
+   ```bash
+   psql -d smart_faculty -f database/schema.sql
+   ```
+   *(Or run the SQL query in your PGAdmin/Neon dashboard)*
+
+### 3. Backend Setup
+```bash
+cd server
+npm install
+npm run dev
+```
+*Server runs on port 5000.*
+
+### 4. Frontend Setup
+```bash
+cd client
+npm install
+npm run dev
+```
+*Client runs on port 5173.*
+
+---
+
+## ☁️ Deployment (Vercel)
+
+This project is configured for **Vercel**.
+1. Import the project in Vercel.
+2. Add your **Environment Variables** in Vercel Settings:
+   - `DATABASE_URL`: Your cloud Postgres connection string (e.g. from Neon.tech).
+3. Deploy! 🚀
+
+---
+
+## 📂 Project Structure
+- **/client**: React Frontend App
+- **/server**: Express API & Logic
+  - `trie.js`: Custom Search Algorithm
+  - `index.js`: Main Server Logic
+- **/database**: SQL Schema

@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const FacultyList = () => {
     const [faculties, setFaculties] = useState([]);
@@ -7,7 +6,7 @@ const FacultyList = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetch('http://localhost:5000/api/faculties')
+        fetch(`${API_URL}/api/faculties`)
             .then(res => res.json())
             .then(data => {
                 setFaculties(data);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
 const Admin = () => {
     // Add Faculty State
@@ -21,7 +22,7 @@ const Admin = () => {
 
     const fetchFacultyList = async () => {
         try {
-            const res = await fetch('/api/faculties');
+            const res = await fetch(`${API_URL}/api/faculties`);
             const data = await res.json();
             setFacultyList(data);
         } catch (err) {
@@ -31,7 +32,7 @@ const Admin = () => {
 
     const handleFacultySubmit = async (e) => {
         e.preventDefault();
-        const res = await fetch('/api/faculty', {
+        const res = await fetch(`${API_URL}/api/faculty`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -53,7 +54,7 @@ const Admin = () => {
             return;
         }
 
-        const res = await fetch('/api/timetable', {
+        const res = await fetch(`${API_URL}/api/timetable`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

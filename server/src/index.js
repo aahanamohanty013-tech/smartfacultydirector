@@ -14,11 +14,13 @@ app.use(express.json());
 
 // Database Connection
 const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'smart_faculty',
     password: process.env.DB_PASSWORD || 'password',
     port: process.env.DB_PORT || 5432,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
 // Initialize Trie with data from DB
@@ -291,7 +293,14 @@ app.delete('/api/timetable/:id', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Start Server
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        initializeTrie();
+    });
+} else {
     initializeTrie();
-});
+}
+
+module.exports = app;

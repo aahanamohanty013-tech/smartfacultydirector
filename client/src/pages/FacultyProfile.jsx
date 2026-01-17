@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const FacultyProfile = () => {
     const { id } = useParams();
@@ -7,7 +8,7 @@ const FacultyProfile = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`/api/faculty/${id}`)
+        fetch(`${API_URL}/api/faculty/${id}`)
             .then(res => res.json())
             .then(data => {
                 setFaculty(data);
