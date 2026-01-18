@@ -1,8 +1,7 @@
-/* client/src/App.jsx */
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import SearchBar from './SearchBar';
-import FacultyProfile from './FacultyProfile';
+import FacultyProfile from './FacultyProfile'; // <--- THIS is what fixes the error!
 import Admin from './Admin';
 import Login from './Login';
 import Signup from './Signup';
@@ -11,6 +10,7 @@ import CampusMap from './CampusMap';
 import Departments from './Departments';
 import Programs from './Programs';
 import FacultyList from './FacultyList';
+
 
 function App() {
     return (
