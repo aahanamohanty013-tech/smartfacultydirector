@@ -1,10 +1,12 @@
 /* server/seed.js */
 const { Pool } = require('pg');
-require('dotenv').config();
-const fs = require('fs'); // If you see an error about schema.sql, we can simplify this.
+
+// 👇👇👇 PASTE YOUR NEON DATABASE URL INSIDE THE QUOTES BELOW 👇👇👇
+const CONNECTION_STRING = "postgresql://neondb_owner:npg_ELY1Ct6ByHDu@ep-aged-cake-ah52k9am-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require";
+// 👆👆👆 REPLACE THE TEXT ABOVE WITH YOUR ACTUAL URL 👆👆👆
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: CONNECTION_STRING,
     ssl: { rejectUnauthorized: false }
 });
 
@@ -32,13 +34,12 @@ const timeSlots = [
 
 const seed = async () => {
     try {
-        console.log("Connecting...");
+        console.log("Connecting to NEON DB...");
 
-        // Clear existing data
         await pool.query('DELETE FROM timetables');
         await pool.query('DELETE FROM users');
         await pool.query('DELETE FROM faculty');
-        console.log("Old data cleared.");
+        console.log("Cleared old data.");
 
         const insertFaculty = async (name, floor, room) => {
             const cleanName = name.replace(/^(Dr\.|Ms\.|Mrs\.|Mr\.)\s+/i, '');
