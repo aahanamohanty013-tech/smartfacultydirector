@@ -1,3 +1,4 @@
+/* client/src/Signup.jsx */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from './config';
@@ -7,14 +8,15 @@ const Signup = () => {
     const [formData, setFormData] = useState({
         name: '',
         shortform: '',
-        password: '',
-        specialization: ''
+        specialization: '',
+        password: ''
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
@@ -23,6 +25,7 @@ const Signup = () => {
         setError('');
 
         try {
+            console.log('Signing up to:', `${API_URL}/api/signup`);
             const response = await fetch(`${API_URL}/api/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -40,7 +43,12 @@ const Signup = () => {
 
         } catch (err) {
             console.error('Signup Error:', err);
-            setError(err.message);
+            // If it's a syntax error (HTML response), give a clear hint
+            if (err.message.includes('Unexpected token')) {
+                setError('Server connection failed. Make sure the backend is running on port 5000.');
+            } else {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
