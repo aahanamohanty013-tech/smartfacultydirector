@@ -1,35 +1,32 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import SearchBar from './components/SearchBar';
+import SearchBar from './SearchBar';  // <--- No "components/"
 import FacultyProfile from './FacultyProfile';
-import Admin from './pages/Admin';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import CampusMap from './pages/CampusMap';
-import Departments from './pages/Departments';
-import Programs from './pages/Programs';
-import FacultyList from './pages/FacultyList';
-
-function App() {
-    return (
-        <Router>
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700 font-sans text-white overflow-x-hidden">
-                <GlobalNav />
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/map" element={<CampusMap />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/faculty/:id" element={<FacultyProfile />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="/departments" element={<Departments />} />
-                    <Route path="/programs" element={<Programs />} />
-                    <Route path="/faculty-list" element={<FacultyList />} />
-                </Routes>
-            </div>
-        </Router>
+import Admin from './Admin';          // <--- No "pages/"
+import Login from './Login';
+import Signup from './Signup';
+import Dashboard from './Dashboard';
+import CampusMap from './CampusMap';
+import Departments from './Departments';
+import Programs from './Programs';
+import FacultyList from './FacultyList';
+<Router>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700 font-sans text-white overflow-x-hidden">
+        <GlobalNav />
+        <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/map" element={<CampusMap />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/faculty/:id" element={<FacultyProfile />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/departments" element={<Departments />} />
+            <Route path="/programs" element={<Programs />} />
+            <Route path="/faculty-list" element={<FacultyList />} />
+        </Routes>
+    </div>
+</Router>
     );
 }
 
