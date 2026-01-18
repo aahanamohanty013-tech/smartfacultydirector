@@ -1,5 +1,7 @@
+/* client/src/Dashboard.jsx */
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { API_URL } from './config';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -7,14 +9,11 @@ const Dashboard = () => {
     const [faculty, setFaculty] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editMode, setEditMode] = useState(false);
+    const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'timetable'
 
-    // Form States
     const [formData, setFormData] = useState({});
     const [newClass, setNewClass] = useState({
-        day_of_week: 'Monday',
-        start_time: '09:00',
-        end_time: '10:00',
-        course_name: ''
+        day_of_week: 'Monday', start_time: '09:00', end_time: '10:00', course_name: ''
     });
 
     useEffect(() => {
@@ -29,7 +28,7 @@ const Dashboard = () => {
 
     const fetchFacultyData = async (facultyId) => {
         try {
-            const res = await fetch(`/api/faculty/${facultyId}`);
+            const res = await fetch(`${API_URL}/api/faculty/${facultyId}`);
             const data = await res.json();
             setFaculty(data);
             setFormData({
@@ -47,13 +46,13 @@ const Dashboard = () => {
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`/api/faculty/${faculty.id}`, {
+            const res = await fetch(`${API_URL}/api/faculty/${faculty.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
             if (res.ok) {
-                alert("Profile Updated");
+                alert("Profile Updated Successfully!");
                 setEditMode(false);
                 fetchFacultyData(faculty.id);
             }
@@ -65,15 +64,15 @@ const Dashboard = () => {
     const handleAddClass = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('/api/timetable', {
+            const res = await fetch(`${API_URL}/api/timetable`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...newClass, faculty_id: faculty.id })
             });
             if (res.ok) {
-                alert("Class Added");
-                setNewClass({ ...newClass, course_name: '' }); // Reset name
-                fetchFacultyData(faculty.id); // Refresh list
+                alert("Class Added!");
+                setNewClass({ ...newClass, course_name: '' });
+                fetchFacultyData(faculty.id);
             }
         } catch (err) {
             alert("Failed to add class");
@@ -81,12 +80,10 @@ const Dashboard = () => {
     };
 
     const handleDeleteClass = async (id) => {
-        if (!window.confirm("Are you sure?")) return;
+        if (!window.confirm("Remove this class?")) return;
         try {
-            const res = await fetch(`/api/timetable/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                fetchFacultyData(faculty.id);
-            }
+            const res = await fetch(`${API_URL}/api/timetable/${id}`, { method: 'DELETE' });
+            if (res.ok) fetchFacultyData(faculty.id);
         } catch (err) {
             alert("Failed to delete");
         }
@@ -97,137 +94,128 @@ const Dashboard = () => {
         navigate('/');
     };
 
-    if (loading) return <div className="p-8 text-center text-white">Loading dashboard...</div>;
+    if (loading) return <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center text-white">Loading...</div>;
 
-    // Common Input Style for Glass UI
-    const glassInput = "w-full bg-white/10 border border-white/20 rounded-lg p-2 text-white placeholder-white/50 focus:outline-none focus:bg-white/20";
-    const glassLabel = "block text-sm text-white/80 mb-1";
-    const sectionClass = "bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-xl";
+    const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 transition text-gray-900 bg-white";
 
     return (
-        <div className="min-h-screen pt-24 px-6 pb-6">
-            {/* Header */}
-            <div className="max-w-6xl mx-auto flex justify-between items-center mb-8 animate-fade-in-up">
-                <div className="flex items-center space-x-4">
-                    <h1 className="text-3xl font-bold">Faculty Dashboard</h1>
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-mono text-white/80">
-                        {faculty.name}
-                    </span>
-                </div>
-                <button
-                    onClick={handleLogout}
-                    className="px-6 py-2 bg-red-500/80 hover:bg-red-600 rounded-lg text-white font-medium backdrop-blur-sm transition shadow-lg"
-                >
-                    Logout
-                </button>
-            </div>
+        <div className="min-h-screen bg-[#7c2ae8] pt-24 pb-12 px-4">
+            <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up">
 
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-
-                {/* Profile Section */}
-                <div className={`${sectionClass} h-fit`}>
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold flex items-center"><span className="mr-2">👤</span> My Profile</h2>
-                        <button
-                            onClick={() => setEditMode(!editMode)}
-                            className="text-yellow-300 hover:text-yellow-200 text-sm font-medium"
-                        >
-                            {editMode ? 'Cancel' : 'Edit Details'}
-                        </button>
+                {/* Header */}
+                <div className="flex justify-between items-center text-white">
+                    <div>
+                        <h1 className="text-3xl font-bold">Faculty Dashboard</h1>
+                        <p className="text-white/70">Welcome back, {faculty.name}</p>
                     </div>
-
-                    {editMode ? (
-                        <form onSubmit={handleProfileUpdate} className="space-y-4">
-                            <div>
-                                <label className={glassLabel}>Department</label>
-                                <input className={glassInput} value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className={glassLabel}>Room</label>
-                                    <input className={glassInput} value={formData.room_number} onChange={e => setFormData({ ...formData, room_number: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label className={glassLabel}>Floor</label>
-                                    <input className={glassInput} value={formData.floor_number} onChange={e => setFormData({ ...formData, floor_number: e.target.value })} />
-                                </div>
-                            </div>
-                            <div>
-                                <label className={glassLabel}>Specialization</label>
-                                <input className={glassInput} value={formData.specialization} onChange={e => setFormData({ ...formData, specialization: e.target.value })} />
-                            </div>
-                            <button type="submit" className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 rounded-lg hover:shadow-lg transition">Save Changes</button>
-                        </form>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="flex items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                                <div className="text-3xl mr-4">📍</div>
-                                <div>
-                                    <div className="text-xs text-white/50 uppercase">Location</div>
-                                    <div className="font-semibold">{faculty.room_number}, {faculty.floor_number}</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                                <div className="text-3xl mr-4">🏢</div>
-                                <div>
-                                    <div className="text-xs text-white/50 uppercase">Department</div>
-                                    <div className="font-semibold">{faculty.department}</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                                <div className="text-3xl mr-4">💡</div>
-                                <div>
-                                    <div className="text-xs text-white/50 uppercase">Specialization</div>
-                                    <div className="font-semibold">{faculty.specialization || "Not set"}</div>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 p-4 bg-blue-500/20 rounded-xl border border-blue-400/30">
-                                <div className="text-sm">Current Status: <strong className="text-blue-200">{faculty.status}</strong></div>
-                                <div className="text-xs text-white/70 mt-1">{faculty.bestVisitingTime}</div>
-                            </div>
-                        </div>
-                    )}
+                    <div className="flex gap-4">
+                        <Link to="/" className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition">Back to Home</Link>
+                        <button onClick={handleLogout} className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-bold transition shadow-lg">Logout</button>
+                    </div>
                 </div>
 
-                {/* Timetable Section */}
-                <div className={`${sectionClass} flex flex-col`}>
-                    <h2 className="text-xl font-bold flex items-center mb-6"><span className="mr-2">📅</span> My Schedule</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    {/* Add Class Form */}
-                    <form onSubmit={handleAddClass} className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
-                        <h3 className="text-sm font-bold text-white/70">Add New Class</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <select className={glassInput} value={newClass.day_of_week} onChange={e => setNewClass({ ...newClass, day_of_week: e.target.value })}>
-                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d} value={d} className="text-black">{d}</option>)}
-                            </select>
-                            <input className={glassInput} placeholder="Course Name" value={newClass.course_name} onChange={e => setNewClass({ ...newClass, course_name: e.target.value })} required />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <input type="time" className={glassInput} value={newClass.start_time} onChange={e => setNewClass({ ...newClass, start_time: e.target.value })} required />
-                            <input type="time" className={glassInput} value={newClass.end_time} onChange={e => setNewClass({ ...newClass, end_time: e.target.value })} required />
-                        </div>
-                        <button type="submit" className="w-full bg-blue-600/80 hover:bg-blue-600 text-white py-2 rounded-lg text-sm transition font-medium">Add Class</button>
-                    </form>
+                    {/* Left Column: Profile Card */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-xl p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-gray-800">My Profile</h2>
+                                <button onClick={() => setEditMode(!editMode)} className="text-blue-600 text-sm font-semibold hover:underline">
+                                    {editMode ? 'Cancel' : 'Edit'}
+                                </button>
+                            </div>
 
-                    {/* List Classes */}
-                    <div className="flex-1 overflow-y-auto space-y-2 max-h-[400px] pr-2 custom-scrollbar">
-                        {faculty.timetables && faculty.timetables.length > 0 ? (
-                            faculty.timetables.map(t => (
-                                <div key={t.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition group">
-                                    <div className="text-sm">
-                                        <div className="font-bold text-white">{t.day_of_week}</div>
-                                        <div className="text-white/70 text-xs"> {t.start_time.slice(0, 5)} - {t.end_time.slice(0, 5)} • <span className="text-yellow-300">{t.course_name}</span></div>
+                            {editMode ? (
+                                <form onSubmit={handleProfileUpdate} className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Room Number</label>
+                                        <input type="text" className={inputClass} value={formData.room_number} onChange={e => setFormData({ ...formData, room_number: e.target.value })} />
                                     </div>
-                                    <button onClick={() => handleDeleteClass(t.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition px-2">Delete</button>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Floor</label>
+                                        <input type="text" className={inputClass} value={formData.floor_number} onChange={e => setFormData({ ...formData, floor_number: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Specialization</label>
+                                        <input type="text" className={inputClass} value={formData.specialization} onChange={e => setFormData({ ...formData, specialization: e.target.value })} />
+                                    </div>
+                                    <button type="submit" className="w-full py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition">Save Changes</button>
+                                </form>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                        <div className="text-xs text-gray-400 uppercase font-bold">Location</div>
+                                        <div className="text-gray-900 font-medium">Room {faculty.room_number}, Floor {faculty.floor_number}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                        <div className="text-xs text-gray-400 uppercase font-bold">Department</div>
+                                        <div className="text-gray-900 font-medium">{faculty.department}</div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                        <div className="text-xs text-gray-400 uppercase font-bold">Specialization</div>
+                                        <div className="text-blue-600 font-medium">{faculty.specialization || "Not set"}</div>
+                                    </div>
                                 </div>
-                            ))
-                        ) : (
-                            <p className="text-white/40 text-center py-8 italic border border-dashed border-white/10 rounded-lg">No classes scheduled.</p>
-                        )}
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Timetable Management */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-gray-800">Manage Timetable</h2>
+                                <span className="text-xs text-gray-400 font-mono bg-white px-2 py-1 rounded border">Live Updates</span>
+                            </div>
+
+                            {/* Add Class Form */}
+                            <div className="p-6 bg-blue-50/50 border-b border-blue-100">
+                                <h3 className="text-sm font-bold text-blue-800 mb-3 uppercase tracking-wide">Add New Class</h3>
+                                <form onSubmit={handleAddClass} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                    <div className="md:col-span-1">
+                                        <select className={inputClass} value={newClass.day_of_week} onChange={e => setNewClass({ ...newClass, day_of_week: e.target.value })}>
+                                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <input type="text" placeholder="Course Name" className={inputClass} value={newClass.course_name} onChange={e => setNewClass({ ...newClass, course_name: e.target.value })} required />
+                                    </div>
+                                    <div className="md:col-span-1 flex gap-2">
+                                        <input type="time" className={inputClass} value={newClass.start_time} onChange={e => setNewClass({ ...newClass, start_time: e.target.value })} required />
+                                        <span className="self-center text-gray-400">-</span>
+                                        <input type="time" className={inputClass} value={newClass.end_time} onChange={e => setNewClass({ ...newClass, end_time: e.target.value })} required />
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Add Class</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            {/* Timetable List */}
+                            <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                                {faculty.timetables && faculty.timetables.length > 0 ? (
+                                    faculty.timetables.map(t => (
+                                        <div key={t.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-24 font-bold text-gray-700 text-sm bg-gray-100 text-center py-1 rounded">{t.day_of_week}</div>
+                                                <div>
+                                                    <div className="font-bold text-gray-900">{t.course_name}</div>
+                                                    <div className="text-xs text-gray-500">{t.start_time.slice(0, 5)} - {t.end_time.slice(0, 5)}</div>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => handleDeleteClass(t.id)} className="text-gray-300 hover:text-red-500 font-bold px-3 py-1 rounded transition group-hover:bg-white group-hover:shadow-sm">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-12 text-center text-gray-400 italic">No classes added yet.</div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );

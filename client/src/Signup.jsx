@@ -1,4 +1,3 @@
-/* client/src/Signup.jsx */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from './config';
@@ -25,7 +24,6 @@ const Signup = () => {
         setError('');
 
         try {
-            console.log('Signing up to:', `${API_URL}/api/signup`);
             const response = await fetch(`${API_URL}/api/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -33,19 +31,14 @@ const Signup = () => {
             });
 
             const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Signup failed');
-            }
+            if (!response.ok) throw new Error(data.error || 'Signup failed');
 
             alert('Account created! Please log in.');
             navigate('/login');
-
         } catch (err) {
             console.error('Signup Error:', err);
-            // If it's a syntax error (HTML response), give a clear hint
             if (err.message.includes('Unexpected token')) {
-                setError('Server connection failed. Make sure the backend is running on port 5000.');
+                setError('Server connection failed. Make sure the backend is running on port 5001.');
             } else {
                 setError(err.message);
             }
@@ -53,6 +46,8 @@ const Signup = () => {
             setLoading(false);
         }
     };
+
+    const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition text-gray-900 placeholder-gray-400 bg-white";
 
     return (
         <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center p-4">
@@ -71,82 +66,32 @@ const Signup = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input
-                            type="text"
-                            name="name"
-                            required
-                            placeholder="e.g. Dr. Aahan Mohanty"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                            value={formData.name}
-                            onChange={handleChange}
-                        />
+                        <input type="text" name="name" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.name} onChange={handleChange} />
                     </div>
-
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Alias (Shortform)</label>
-                        <input
-                            type="text"
-                            name="shortform"
-                            required
-                            placeholder="e.g. AM"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                            value={formData.shortform}
-                            onChange={handleChange}
-                        />
-                        <p className="text-xs text-gray-400 mt-1">Used for timetables (must be unique)</p>
+                        <input type="text" name="shortform" required placeholder="e.g. AM" className={inputClass} value={formData.shortform} onChange={handleChange} />
                     </div>
-
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
-                        <input
-                            type="text"
-                            name="specialization"
-                            placeholder="e.g. AI, Machine Learning"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                            value={formData.specialization}
-                            onChange={handleChange}
-                        />
+                        <input type="text" name="specialization" placeholder="e.g. AI, Machine Learning" className={inputClass} value={formData.specialization} onChange={handleChange} />
                     </div>
-
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            required
-                            placeholder="••••••••"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                            value={formData.password}
-                            onChange={handleChange}
-                        />
+                        <input type="password" name="password" required placeholder="••••••••" className={inputClass} value={formData.password} onChange={handleChange} />
                     </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform active:scale-95 transition-all text-sm uppercase tracking-wide
-                            ${loading ? 'opacity-70 cursor-wait' : 'hover:from-purple-700 hover:to-indigo-700'}
-                        `}
-                    >
+                    <button type="submit" disabled={loading} className={`w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform active:scale-95 transition-all text-sm uppercase tracking-wide ${loading ? 'opacity-70 cursor-wait' : 'hover:from-purple-700 hover:to-indigo-700'}`}>
                         {loading ? 'Creating Account...' : 'Create Account'}
                     </button>
                 </form>
-
                 <div className="mt-6 text-center text-sm text-gray-500">
-                    Already have an account?{' '}
-                    <Link to="/login" className="text-purple-600 font-bold hover:underline">
-                        Log In
-                    </Link>
+                    Already have an account? <Link to="/login" className="text-purple-600 font-bold hover:underline">Log In</Link>
                 </div>
-
                 <div className="mt-4 text-center">
-                    <Link to="/" className="text-gray-400 hover:text-gray-600 text-xs font-medium transition">
-                        ← Back to Home
-                    </Link>
+                    <Link to="/" className="text-gray-400 hover:text-gray-600 text-xs font-medium transition">← Back to Home</Link>
                 </div>
             </div>
         </div>
     );
 };
-
 export default Signup;
