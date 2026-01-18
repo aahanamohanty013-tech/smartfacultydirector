@@ -61,27 +61,49 @@ const GlobalNav = () => {
     );
 };
 
+/* IN client/src/App.jsx - Replace the 'Home' component */
+
 const Home = () => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-20 pb-10 text-center relative z-10">
             <div className="animate-fade-in-up">
-                <div className="relative mb-4 group cursor-pointer">
+                {/* Logo Centered */}
+                <div className="relative mb-4 group cursor-pointer flex justify-center">
                     <div className="w-48 h-48 rounded-full border-2 border-white/20 relative z-10 overflow-hidden bg-white shadow-2xl flex items-center justify-center">
                         <img src="/assets/hero_logo.png" alt="Institution Logo" className="w-full h-full object-cover scale-[1.35]" />
                     </div>
                 </div>
+
+                {/* New Title */}
                 <h2 className="text-6xl md:text-8xl font-black tracking-tighter mb-4 drop-shadow-2xl">
-                    <span className="bg-clip-text text-transparent bg-gradient-to-t from-white to-indigo-100">Smart</span><br />
-                    <span className="bg-clip-text text-transparent bg-gradient-to-b from-blue-300 to-purple-200 text-5xl md:text-7xl">Faculty Directory</span>
+                    <span className="bg-clip-text text-transparent bg-gradient-to-t from-white to-indigo-100">Find My</span><br />
+                    <span className="bg-clip-text text-transparent bg-gradient-to-b from-blue-300 to-purple-200 text-5xl md:text-7xl">Faculty</span>
                 </h2>
+
+                {/* Stats / Pill Badges */}
+                <div className="flex flex-wrap justify-center gap-4 text-sm font-medium mb-8">
+                    <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center">
+                        <span className="mr-2 text-yellow-400">🎗️</span> 100+ Expert Faculty
+                    </div>
+                    <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center">
+                        <span className="mr-2 text-blue-400">📅</span> Office Hours
+                    </div>
+                    <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center">
+                        <span className="mr-2 text-purple-400">✨</span> Top Ranked Institution
+                    </div>
+                </div>
+
                 <div className="relative z-40 max-w-xl mx-auto mb-16 transform hover:scale-[1.02] transition-transform duration-300">
                     <SearchBar />
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full animate-fade-in-up delay-200">
-                <QuickCard to="/faculty-list" icon="👥" title="Browse Faculty" desc="View all professors & staff" color="bg-blue-500" />
-                <QuickCard to="/departments" icon="🏛️" title="Departments" desc="Explore academic centers" color="bg-purple-500" />
-                <QuickCard to="/map" icon="🗺️" title="Campus Map" desc="Find classrooms & labs" color="bg-pink-500" />
+
+            {/* Grid with PROGRAMS added back */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl w-full animate-fade-in-up delay-200">
+                <QuickCard to="/faculty-list" icon="👥" title="Browse Faculty" desc="View all professors" color="bg-blue-500" />
+                <QuickCard to="/departments" icon="🏛️" title="Departments" desc="Academic centers" color="bg-purple-500" />
+                <QuickCard to="/programs" icon="🎓" title="Programs" desc="Course offerings" color="bg-orange-500" />
+                <QuickCard to="/map" icon="🗺️" title="Campus Map" desc="Find classrooms" color="bg-pink-500" />
             </div>
         </div>
     );
