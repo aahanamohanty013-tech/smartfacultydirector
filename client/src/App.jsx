@@ -1,15 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import SearchBar from './SearchBar';
+import SearchBar from './components/SearchBar';
 import FacultyProfile from './FacultyProfile';
-import Admin from './Admin';
-import Login from './Login';
-import Signup from './Signup';
-import Dashboard from './Dashboard';
-import CampusMap from './CampusMap';
-import Departments from './Departments';
-import Programs from './Programs';
-import FacultyList from './FacultyList';
+import Admin from './pages/Admin';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Dashboard from './pages/Dashboard';
+import CampusMap from './pages/CampusMap';
+import Departments from './pages/Departments';
+import Programs from './pages/Programs';
+import FacultyList from './pages/FacultyList';
 
 function App() {
     return (
@@ -76,7 +76,7 @@ function Home() {
                 {/* Central Image Wrapper */}
                 <div className="relative mb-4 group cursor-pointer">
                     <div className="w-48 h-48 rounded-full border-2 border-white/20 relative z-10 overflow-hidden bg-white shadow-2xl flex items-center justify-center">
-                        <img src="assets/hero_logo.png" alt="Institution Logo" className="w-full h-full object-cover scale-[1.35]" />
+                        <img src="/assets/hero_logo.png" alt="Institution Logo" className="w-full h-full object-cover scale-[1.35]" />
                     </div>
                     {/* Floating Badge */}
                     <div className="absolute top-2 right-2 z-20 bg-gradient-to-r from-orange-400 to-pink-500 text-white p-2 rounded-full shadow-lg animate-bounce-slow">
