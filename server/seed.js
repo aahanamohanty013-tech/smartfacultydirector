@@ -1,12 +1,8 @@
-/* server/seed.js */
 const { Pool } = require('pg');
-
-// 👇👇👇 PASTE YOUR NEON DATABASE URL INSIDE THE QUOTES BELOW 👇👇👇
-const CONNECTION_STRING = "postgresql://neondb_owner:npg_ELY1Ct6ByHDu@ep-aged-cake-ah52k9am-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require";
-// 👆👆👆 REPLACE THE TEXT ABOVE WITH YOUR ACTUAL URL 👆👆👆
+require('dotenv').config(); // Back to using safe env variables!
 
 const pool = new Pool({
-    connectionString: CONNECTION_STRING,
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
