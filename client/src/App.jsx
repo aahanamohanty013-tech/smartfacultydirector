@@ -76,7 +76,7 @@ function Home() {
                 {/* Central Image Wrapper */}
                 <div className="relative mb-4 group cursor-pointer">
                     <div className="w-48 h-48 rounded-full border-2 border-white/20 relative z-10 overflow-hidden bg-white shadow-2xl flex items-center justify-center">
-                        <img src="/hero_logo.png" alt="Institution Logo" className="w-full h-full object-cover scale-[1.35]" />
+                        <img src="assets/hero_logo.png" alt="Institution Logo" className="w-full h-full object-cover scale-[1.35]" />
                     </div>
                     {/* Floating Badge */}
                     <div className="absolute top-2 right-2 z-20 bg-gradient-to-r from-orange-400 to-pink-500 text-white p-2 rounded-full shadow-lg animate-bounce-slow">
