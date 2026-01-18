@@ -1,76 +1,116 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from './config';
 
 const Login = () => {
     const navigate = useNavigate();
-    const [name, setName] = useState('');
-    const [password, setPassword] = useState('');
+    const [formData, setFormData] = useState({
+        username: '',
+        password: ''
+    });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e) => {
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setError('');
+
         try {
-            const res = await fetch(`${API_URL}/api/login`, {
+            console.log('Logging in with:', formData);
+            const response = await fetch(`${API_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, password })
+                body: JSON.stringify(formData)
             });
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                navigate('/dashboard');
-            } else {
-                alert(data.error);
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Login failed');
             }
+
+            // Login Success
+            alert(`Welcome back, ${data.username}!`);
+
+            // Navigate to Dashboard or Home
+            navigate('/dashboard');
+
         } catch (err) {
-            console.error(err);
-            alert('Login failed');
+            console.error('Login Error:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen pt-24 px-4 flex items-center justify-center">
-            <div className="bg-white/10 backdrop-blur-md p-8 rounded-2xl border border-white/20 shadow-2xl w-full max-w-md animate-fade-in-up">
+        <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 animate-fade-in-up">
                 <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-                    <p className="text-white/60">Login to access your dashboard</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Faculty Login</h1>
+                    <p className="text-gray-500 mt-2">Access your dashboard</p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-6">
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm font-medium border border-red-100 flex items-center">
+                        <span className="mr-2">⚠️</span> {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm text-white/80 mb-2">Full Name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Username (Full Name)</label>
                         <input
                             type="text"
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:bg-white/10 transition"
-                            placeholder="e.g. Prashant"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            name="username"
+                            required
+                            placeholder="e.g. Dr. Aahan Mohanty"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                            value={formData.username}
+                            onChange={handleChange}
                         />
                     </div>
+
                     <div>
-                        <label className="block text-sm text-white/80 mb-2">Password</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input
                             type="password"
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:bg-white/10 transition"
+                            name="password"
+                            required
                             placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                            value={formData.password}
+                            onChange={handleChange}
                         />
                     </div>
+
                     <button
                         type="submit"
-                        className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-[1.02]"
+                        disabled={loading}
+                        className={`w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform active:scale-95 transition-all text-sm uppercase tracking-wide
+                            ${loading ? 'opacity-70 cursor-wait' : 'hover:from-purple-700 hover:to-indigo-700'}
+                        `}
                     >
-                        Log In
+                        {loading ? 'Logging In...' : 'Log In'}
                     </button>
                 </form>
 
-                <div className="mt-6 text-center text-sm text-white/60">
-                    Don't have an account? <Link to="/signup" className="text-white font-medium hover:underline">Sign Up</Link>
+                <div className="mt-6 text-center text-sm text-gray-500">
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="text-purple-600 font-bold hover:underline">
+                        Sign Up
+                    </Link>
                 </div>
 
                 <div className="mt-4 text-center">
-                    <Link to="/" className="text-white/40 hover:text-white text-xs transition">← Back to Home</Link>
+                    <Link to="/" className="text-gray-400 hover:text-gray-600 text-xs font-medium transition">
+                        ← Back to Home
+                    </Link>
                 </div>
             </div>
         </div>
