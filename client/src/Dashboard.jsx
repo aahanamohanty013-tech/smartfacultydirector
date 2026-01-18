@@ -9,7 +9,6 @@ const Dashboard = () => {
     const [faculty, setFaculty] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editMode, setEditMode] = useState(false);
-    const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'timetable'
 
     const [formData, setFormData] = useState({});
     const [newClass, setNewClass] = useState({
@@ -172,22 +171,29 @@ const Dashboard = () => {
                             {/* Add Class Form */}
                             <div className="p-6 bg-blue-50/50 border-b border-blue-100">
                                 <h3 className="text-sm font-bold text-blue-800 mb-3 uppercase tracking-wide">Add New Class</h3>
-                                <form onSubmit={handleAddClass} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                    <div className="md:col-span-1">
+                                <form onSubmit={handleAddClass} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                    <div className="md:col-span-3">
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">Day</label>
                                         <select className={inputClass} value={newClass.day_of_week} onChange={e => setNewClass({ ...newClass, day_of_week: e.target.value })}>
                                             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d} value={d}>{d}</option>)}
                                         </select>
                                     </div>
-                                    <div className="md:col-span-1">
+                                    <div className="md:col-span-4">
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">Course</label>
                                         <input type="text" placeholder="Course Name" className={inputClass} value={newClass.course_name} onChange={e => setNewClass({ ...newClass, course_name: e.target.value })} required />
                                     </div>
-                                    <div className="md:col-span-1 flex gap-2">
-                                        <input type="time" className={inputClass} value={newClass.start_time} onChange={e => setNewClass({ ...newClass, start_time: e.target.value })} required />
-                                        <span className="self-center text-gray-400">-</span>
-                                        <input type="time" className={inputClass} value={newClass.end_time} onChange={e => setNewClass({ ...newClass, end_time: e.target.value })} required />
+                                    <div className="md:col-span-3">
+                                        <label className="text-xs font-bold text-gray-400 mb-1 block">Time</label>
+                                        <div className="flex gap-2 items-center">
+                                            <input type="time" className={inputClass} value={newClass.start_time} onChange={e => setNewClass({ ...newClass, start_time: e.target.value })} required />
+                                            <span className="text-gray-400 font-bold">-</span>
+                                            <input type="time" className={inputClass} value={newClass.end_time} onChange={e => setNewClass({ ...newClass, end_time: e.target.value })} required />
+                                        </div>
                                     </div>
-                                    <div className="md:col-span-1">
-                                        <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Add Class</button>
+                                    <div className="md:col-span-2">
+                                        <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-sm h-[42px]">
+                                            Add
+                                        </button>
                                     </div>
                                 </form>
                             </div>
