@@ -1,6 +1,8 @@
-// client/src/config.js
-const isProduction = import.meta.env.PROD;
+const getApiUrl = () => {
+    if (import.meta.env.PROD) {
+        return '';
+    }
+    return 'http://localhost:5001';
+};
 
-export const API_URL = isProduction
-    ? ''  // On Vercel, use relative paths (e.g., /api/users)
-    : 'http://localhost:5000'; // Locally, use the full server URL
+export const API_URL = getApiUrl();
