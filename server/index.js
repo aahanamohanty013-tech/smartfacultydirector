@@ -1,9 +1,10 @@
+/* server/index.js */
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const trie = require('./trie');
+const trie = require('./trie'); // Make sure trie.js exists in the same folder
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -60,27 +61,32 @@ const initializeTrie = async () => {
     }
 };
 
-// --- Helper Logic: Availability ---
+// --- Helper Logic: Availability (FIXED) ---
 const calculateAvailability = (timetables) => {
     const now = new Date();
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const currentDayIndex = now.getDay();
     const currentDay = days[currentDayIndex];
-    const currentTimeStr = now.toTimeString().split(' ')[0]; // "HH:MM:SS"
+
+    // Normalize time to "HH:MM" for accurate comparison
+    const toHHMM = (timeStr) => timeStr ? timeStr.slice(0, 5) : "00:00";
+    const currentTimeStr = toHHMM(now.toTimeString().split(' ')[0]);
 
     // 1. Check if currently in class
-    const currentClass = timetables.find(t =>
-        t.day_of_week === currentDay &&
-        currentTimeStr >= t.start_time &&
-        currentTimeStr <= t.end_time
-    );
+    const currentClass = timetables.find(t => {
+        const start = toHHMM(t.start_time);
+        const end = toHHMM(t.end_time);
+        return t.day_of_week === currentDay &&
+            currentTimeStr >= start &&
+            currentTimeStr < end; // Changed to strictly less than end time
+    });
 
     let status = 'Likely Available';
     let currentDetails = null;
 
     if (currentClass) {
         status = 'In Class';
-        currentDetails = `Class: ${currentClass.course_name} (${currentClass.start_time.slice(0, 5)} - ${currentClass.end_time.slice(0, 5)})`;
+        currentDetails = `Class: ${currentClass.course_name} (${toHHMM(currentClass.start_time)} - ${toHHMM(currentClass.end_time)})`;
     }
 
     // 2. Find Best Visiting Time (Next Free Slot)
@@ -94,33 +100,32 @@ const calculateAvailability = (timetables) => {
     // Determine where to start searching for a gap
     let searchStartTime = currentTimeStr;
     if (status === 'In Class') {
-        searchStartTime = currentClass.end_time;
+        searchStartTime = toHHMM(currentClass.end_time);
     }
 
     // Find the first class that starts AFTER our search start time
-    const nextClass = todaysClasses.find(t => t.start_time > searchStartTime);
+    const nextClass = todaysClasses.find(t => toHHMM(t.start_time) > searchStartTime);
 
     if (nextClass) {
-        // There is a future class today.
-        // If we are currently in class, the best time is AFTER this class UNTIL the next one.
-        // If we are free, the best time is NOW UNTIL the next class.
-
         if (status === 'In Class') {
-            bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until ${nextClass.start_time.slice(0, 5)})`;
+            bestVisitingTime = `After ${toHHMM(currentClass.end_time)} (Free until ${toHHMM(nextClass.start_time)})`;
         } else {
-            bestVisitingTime = `Now (Free until ${nextClass.start_time.slice(0, 5)})`;
+            bestVisitingTime = `Now (Free until ${toHHMM(nextClass.start_time)})`;
         }
     } else {
-        // No more classes today after 'searchStartTime'
+        // No more classes today
         if (status === 'In Class') {
-            bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free for rest of day)`;
+            bestVisitingTime = `After ${toHHMM(currentClass.end_time)} (Free for rest of day)`;
         } else {
-            bestVisitingTime = "Now (Free for rest of day)";
+            // Check if it's late (e.g. past 5 PM)
+            const currentHour = parseInt(currentTimeStr.split(':')[0]);
+            if (currentHour >= 17) {
+                bestVisitingTime = "Likely left for the day";
+            } else {
+                bestVisitingTime = "Now (Free for rest of day)";
+            }
         }
     }
-
-    // Fallback: If it's late (e.g. after 5pm) and we say "Now", it might be odd if they aren't on campus.
-    // For this prototype, we stick to schedule logic.
 
     return { status, currentDetails, bestVisitingTime };
 };
@@ -138,7 +143,6 @@ app.get('/api/faculties', async (req, res) => {
     }
 });
 
-// Search API (Trie)
 // Search API (Trie)
 app.get('/api/search', async (req, res) => {
     const { q } = req.query;
@@ -230,7 +234,6 @@ app.post('/api/signup', async (req, res) => {
         const facultyId = facultyRes.rows[0].id;
 
         // 2. Create User Account
-        // Using Full Name as username
         await pool.query(
             'INSERT INTO users (username, password_hash, faculty_id) VALUES ($1, $2, $3)',
             [name, password, facultyId]
@@ -259,11 +262,10 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = result.rows[0];
-        console.log(`[LOGIN FOUND] User: ${user.username}, Stored Hash: ${user.password_hash}`);
 
         // Plain text password check for MVP
         if (user.password_hash !== password) {
-            console.log(`[LOGIN FAIL] Password Mismatch. Provided: ${password}, Stored: ${user.password_hash}`);
+            console.log(`[LOGIN FAIL] Password Mismatch.`);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -275,7 +277,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Admin: Add Timetable
+// Add Timetable
 app.post('/api/timetable', async (req, res) => {
     const { faculty_id, day_of_week, start_time, end_time, course_name } = req.body;
     try {
