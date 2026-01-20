@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_URL } from './config';
+import { API_URL } from '../config';
 
-const Login = () => {
+const Signup = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({ username: '', password: '' });
+    const [formData, setFormData] = useState({
+        name: '',
+        shortform: '',
+        specialization: '',
+        password: ''
+    });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
@@ -18,20 +24,24 @@ const Login = () => {
         setError('');
 
         try {
-            const response = await fetch(`${API_URL}/api/login`, {
+            const response = await fetch(`${API_URL}/api/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Login failed');
 
-            localStorage.setItem('user', JSON.stringify(data)); // Save user
-            alert(`Welcome back, ${data.username}!`);
-            navigate('/dashboard'); // <--- Redirect to Dashboard
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Signup failed');
+
+            alert('Account created! Please log in.');
+            navigate('/login');
         } catch (err) {
-            console.error('Login Error:', err);
-            setError(err.message);
+            console.error('Signup Error:', err);
+            if (err.message.includes('Unexpected token')) {
+                setError('Server connection failed. Make sure the backend is running on port 5001.');
+            } else {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -43,8 +53,8 @@ const Login = () => {
         <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 animate-fade-in-up">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Faculty Login</h1>
-                    <p className="text-gray-500 mt-2">Access your dashboard</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Faculty Sign Up</h1>
+                    <p className="text-gray-500 mt-2">Join the directory</p>
                 </div>
 
                 {error && (
@@ -53,21 +63,29 @@ const Login = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Username (Full Name)</label>
-                        <input type="text" name="username" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.username} onChange={handleChange} />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" name="name" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.name} onChange={handleChange} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Alias (Shortform)</label>
+                        <input type="text" name="shortform" required placeholder="e.g. AM" className={inputClass} value={formData.shortform} onChange={handleChange} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                        <input type="text" name="specialization" placeholder="e.g. AI, Machine Learning" className={inputClass} value={formData.specialization} onChange={handleChange} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" name="password" required placeholder="••••••••" className={inputClass} value={formData.password} onChange={handleChange} />
                     </div>
                     <button type="submit" disabled={loading} className={`w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform active:scale-95 transition-all text-sm uppercase tracking-wide ${loading ? 'opacity-70 cursor-wait' : 'hover:from-purple-700 hover:to-indigo-700'}`}>
-                        {loading ? 'Logging In...' : 'Log In'}
+                        {loading ? 'Creating Account...' : 'Create Account'}
                     </button>
                 </form>
                 <div className="mt-6 text-center text-sm text-gray-500">
-                    Don't have an account? <Link to="/signup" className="text-purple-600 font-bold hover:underline">Sign Up</Link>
+                    Already have an account? <Link to="/login" className="text-purple-600 font-bold hover:underline">Log In</Link>
                 </div>
                 <div className="mt-4 text-center">
                     <Link to="/" className="text-gray-400 hover:text-gray-600 text-xs font-medium transition">← Back to Home</Link>
@@ -76,4 +94,4 @@ const Login = () => {
         </div>
     );
 };
-export default Login;
+export default Signup;

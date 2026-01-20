@@ -1,7 +1,7 @@
 /* client/src/Dashboard.jsx */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_URL } from './config';
+import { API_URL } from '../config';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -231,3 +231,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

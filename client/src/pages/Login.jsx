@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_URL } from './config';
+import { API_URL } from '../config';
 
-const Signup = () => {
+const Login = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        name: '',
-        shortform: '',
-        specialization: '',
-        password: ''
-    });
+    const [formData, setFormData] = useState({ username: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e) => {
@@ -24,24 +18,20 @@ const Signup = () => {
         setError('');
 
         try {
-            const response = await fetch(`${API_URL}/api/signup`, {
+            const response = await fetch(`${API_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
-
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Signup failed');
+            if (!response.ok) throw new Error(data.error || 'Login failed');
 
-            alert('Account created! Please log in.');
-            navigate('/login');
+            localStorage.setItem('user', JSON.stringify(data)); // Save user
+            alert(`Welcome back, ${data.username}!`);
+            navigate('/dashboard'); // <--- Redirect to Dashboard
         } catch (err) {
-            console.error('Signup Error:', err);
-            if (err.message.includes('Unexpected token')) {
-                setError('Server connection failed. Make sure the backend is running on port 5001.');
-            } else {
-                setError(err.message);
-            }
+            console.error('Login Error:', err);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -53,8 +43,8 @@ const Signup = () => {
         <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 animate-fade-in-up">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Faculty Sign Up</h1>
-                    <p className="text-gray-500 mt-2">Join the directory</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Faculty Login</h1>
+                    <p className="text-gray-500 mt-2">Access your dashboard</p>
                 </div>
 
                 {error && (
@@ -63,29 +53,21 @@ const Signup = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" name="name" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.name} onChange={handleChange} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Alias (Shortform)</label>
-                        <input type="text" name="shortform" required placeholder="e.g. AM" className={inputClass} value={formData.shortform} onChange={handleChange} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
-                        <input type="text" name="specialization" placeholder="e.g. AI, Machine Learning" className={inputClass} value={formData.specialization} onChange={handleChange} />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Username (Full Name)</label>
+                        <input type="text" name="username" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.username} onChange={handleChange} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" name="password" required placeholder="••••••••" className={inputClass} value={formData.password} onChange={handleChange} />
                     </div>
                     <button type="submit" disabled={loading} className={`w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform active:scale-95 transition-all text-sm uppercase tracking-wide ${loading ? 'opacity-70 cursor-wait' : 'hover:from-purple-700 hover:to-indigo-700'}`}>
-                        {loading ? 'Creating Account...' : 'Create Account'}
+                        {loading ? 'Logging In...' : 'Log In'}
                     </button>
                 </form>
                 <div className="mt-6 text-center text-sm text-gray-500">
-                    Already have an account? <Link to="/login" className="text-purple-600 font-bold hover:underline">Log In</Link>
+                    Don't have an account? <Link to="/signup" className="text-purple-600 font-bold hover:underline">Sign Up</Link>
                 </div>
                 <div className="mt-4 text-center">
                     <Link to="/" className="text-gray-400 hover:text-gray-600 text-xs font-medium transition">← Back to Home</Link>
@@ -94,4 +76,4 @@ const Signup = () => {
         </div>
     );
 };
-export default Signup;
+export default Login;

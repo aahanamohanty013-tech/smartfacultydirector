@@ -1,7 +1,7 @@
 /* client/src/FacultyList.jsx */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { API_URL } from './config';
+import { API_URL } from '../config';
 
 const FacultyList = () => {
     const [faculties, setFaculties] = useState([]);
@@ -115,3 +115,4 @@ const FacultyList = () => {
 };
 
 export default FacultyList;
+

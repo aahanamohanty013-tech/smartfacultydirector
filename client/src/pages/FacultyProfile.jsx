@@ -1,7 +1,7 @@
 /* client/src/FacultyProfile.jsx */
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { API_URL } from './config';
+import { API_URL } from '../config';
 
 const FacultyProfile = () => {
     const { id } = useParams();
@@ -139,3 +139,4 @@ const FacultyProfile = () => {
 };
 
 export default FacultyProfile;
+
