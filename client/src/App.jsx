@@ -96,7 +96,7 @@ function Home() {
                         <span className="mr-2 text-yellow-400">🎗️</span> 100+ Expert Faculty
                     </div>
                     <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center">
-                        <span className="mr-2 text-blue-400">📅</span> Office Hours: 9am - 5pm
+                        <span className="mr-2 text-blue-400">📅</span> Office Hours: 9am-5pm
                     </div>
                     <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center">
                         <span className="mr-2 text-purple-400">✨</span> Top Ranked Institution
