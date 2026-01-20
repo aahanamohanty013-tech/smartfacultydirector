@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL } from '../config';
+import { API_URL } from './config';
 
 const Admin = () => {
     // Add Faculty State
@@ -182,4 +182,5 @@ const Admin = () => {
 };
 
 export default Admin;
+
 

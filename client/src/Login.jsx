@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_URL } from '../config';
+import { API_URL } from './config';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -77,3 +77,4 @@ const Login = () => {
     );
 };
 export default Login;
+

@@ -69,3 +69,4 @@ const SearchBar = ({ premiumMode }) => {
     );
 };
 export default SearchBar;
+
