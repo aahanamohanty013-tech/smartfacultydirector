@@ -61,9 +61,14 @@ const FacultyProfile = () => {
 
                         <div>
                             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{faculty.name}</h1>
+                            {faculty.aliases && faculty.aliases.length > 0 && (
+                                <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md mb-2 font-mono">
+                                    {faculty.aliases.join(', ')}
+                                </span>
+                            )}
                             <p className="text-xl text-blue-600 font-medium">{faculty.department}</p>
                             <div className="mt-4 flex flex-col space-y-1 text-sm text-gray-500">
-                                <span className="flex items-center"><span className="mr-1">📍</span> {faculty.room_number}, {faculty.floor_number}</span>
+                                <span className="flex items-center"><span className="mr-1">📍</span> <span className="font-semibold mr-1">Cabin:</span> {faculty.room_number}, {faculty.floor_number}</span>
                                 {faculty.specialization && <span className="flex items-center text-blue-800 bg-blue-50 px-2 py-1 rounded w-fit"><span className="mr-2">💡</span> {faculty.specialization}</span>}
                             </div>
                         </div>
