@@ -11,6 +11,9 @@ import Departments from './Departments';
 import Programs from './Programs';
 import FacultyList from './FacultyList';
 
+// Lazy load Playground to prevent app crash if it fails
+const FeaturePlayground = React.lazy(() => import('./FeaturePlayground'));
+
 function App() {
     return (
         <Router>
@@ -27,6 +30,11 @@ function App() {
                     <Route path="/departments" element={<Departments />} />
                     <Route path="/programs" element={<Programs />} />
                     <Route path="/faculty-list" element={<FacultyList />} />
+                    <Route path="/playground" element={
+                        <React.Suspense fallback={<div className="text-white text-center mt-20">Loading Playground...</div>}>
+                            <FeaturePlayground />
+                        </React.Suspense>
+                    } />
                 </Routes>
             </div>
         </Router>
@@ -118,11 +126,12 @@ function Home() {
             </div>
 
             {/* Bottom Action Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl mt-16 px-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full max-w-5xl mt-16 px-4">
                 <ActionCard icon="📖" label="Departments" color="bg-purple-500/20" link="/departments" />
                 <ActionCard icon="🎓" label="Programs" color="bg-orange-500/20" link="/programs" />
                 <ActionCard icon="👥" label="Faculty" color="bg-blue-500/20" link="/faculty-list" />
                 <ActionCard icon="🗺️" label="Campus Map" color="bg-green-500/20" link="/map" />
+                <ActionCard icon="🛠️" label="Playground" color="bg-pink-500/20" link="/playground" />
             </div>
         </div >
     );
