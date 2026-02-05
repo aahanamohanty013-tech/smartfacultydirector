@@ -160,6 +160,32 @@ const Dashboard = () => {
                         </button>
                     </div>
 
+                    {/* STATUS TOGGLE */}
+                    <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between">
+                        <div>
+                            <div className="font-bold text-lg text-white">Status: {faculty.is_on_leave ? '🔴 On Leave' : '🟢 Active'}</div>
+                            <div className="text-xs text-white/60">Toggle this when you are away.</div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const newStatus = !faculty.is_on_leave;
+                                // Optimistic Update
+                                setFaculty({ ...faculty, is_on_leave: newStatus });
+                                // API Call
+                                fetch(`${API_URL}/api/faculty/${faculty.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ is_on_leave: newStatus })
+                                }).then(res => {
+                                    if (!res.ok) alert("Failed to update status");
+                                });
+                            }}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition ${faculty.is_on_leave ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+                        >
+                            {faculty.is_on_leave ? 'Mark as Active' : 'Mark as On Leave'}
+                        </button>
+                    </div>
+
                     {editMode ? (
                         <form onSubmit={handleProfileUpdate} className="space-y-4">
                             <div>

@@ -65,7 +65,16 @@ const initializeData = async () => {
 };
 
 // --- Helper Logic: Availability (Fixed for IST Timezone) ---
-const calculateAvailability = (timetables) => {
+const calculateAvailability = (timetables, isOnLeave = false) => {
+    // 0. CHECK "ON LEAVE" STATUS
+    if (isOnLeave) {
+        return {
+            status: 'On Leave',
+            currentDetails: 'Faculty is currently on leave.',
+            bestVisitingTime: 'On Leave'
+        };
+    }
+
     const now = new Date();
 
     // Force Timezone to India Standard Time (IST)
@@ -173,7 +182,7 @@ app.get('/api/faculty/:id', async (req, res) => {
         const timetableRes = await pool.query('SELECT * FROM timetables WHERE faculty_id = $1 ORDER BY day_of_week, start_time', [id]);
         const timetables = timetableRes.rows;
 
-        const availability = calculateAvailability(timetables);
+        const availability = calculateAvailability(timetables, faculty.is_on_leave);
         res.json({ ...faculty, ...availability, timetables });
     } catch (err) {
         console.error(err);
@@ -184,11 +193,11 @@ app.get('/api/faculty/:id', async (req, res) => {
 // Update Faculty
 app.put('/api/faculty/:id', async (req, res) => {
     const { id } = req.params;
-    const { room_number, floor_number, specialization, department } = req.body;
+    const { room_number, floor_number, specialization, department, is_on_leave } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department) WHERE id = $5 RETURNING *',
-            [room_number, floor_number, specialization, department, id]
+            'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department), is_on_leave = COALESCE($5, is_on_leave) WHERE id = $6 RETURNING *',
+            [room_number, floor_number, specialization, department, is_on_leave, id]
         );
         initializeData();
         res.json(result.rows[0]);

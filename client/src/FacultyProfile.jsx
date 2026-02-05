@@ -26,8 +26,16 @@ const FacultyProfile = () => {
 
     // --- AVAILABILITY LOGIC ---
     const isAvailable = faculty.status === 'Likely Available';
-    const statusColor = !isAvailable ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-green-100 text-green-800 border-green-200';
-    const statusIcon = !isAvailable ? '⏳' : '✅';
+    const isOnLeave = faculty.status === 'On Leave';
+
+    // Status Logic
+    let statusColor = isAvailable ? 'bg-green-100 text-green-800 border-green-200' : 'bg-amber-100 text-amber-800 border-amber-200';
+    let statusIcon = isAvailable ? '✅' : '⏳';
+
+    if (isOnLeave) {
+        statusColor = 'bg-red-100 text-red-800 border-red-200';
+        statusIcon = '⛔';
+    }
 
     return (
         <div className="min-h-screen pt-24 px-6 pb-12 bg-[#7c2ae8]">
