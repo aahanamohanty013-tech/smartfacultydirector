@@ -9,6 +9,13 @@ const trie = require('./trie');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+const priorityQueue = require('./lib/PriorityQueue');
+const IntervalTree = require('./lib/IntervalTree');
+const graph = require('./lib/Graph');
+const scheduler = require('./lib/Scheduler');
+const SegmentTree = require('./lib/SegmentTree');
+const notificationManager = require('./lib/NotificationManager');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -24,14 +31,15 @@ const pool = new Pool({
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
-// Initialize Trie
-const initializeTrie = async () => {
+// Initialize Data Structures (Trie, Graph)
+const initializeData = async () => {
     try {
-        console.log('Initializing Trie...');
+        console.log('Initializing Data Structures...');
         trie.clear();
         const res = await pool.query('SELECT * FROM faculty');
         const facultyList = res.rows;
 
+        // Build Trie
         facultyList.forEach(faculty => {
             trie.insert(faculty.name, faculty);
             if (faculty.aliases && Array.isArray(faculty.aliases)) {
@@ -46,9 +54,13 @@ const initializeTrie = async () => {
                 specParts.forEach(sp => trie.insert(sp, faculty));
             }
         });
-        console.log(`Trie initialized with ${facultyList.length} faculty members.`);
+
+        // Build Graph
+        graph.buildFromFaculty(facultyList);
+
+        console.log(`Initialized: Trie (${facultyList.length} nodes), Graph.`);
     } catch (err) {
-        console.error('Error initializing Trie:', err.message);
+        console.error('Error initializing data:', err.message);
     }
 };
 
@@ -137,9 +149,12 @@ app.get('/api/search', async (req, res) => {
     if (!q) return res.json([]);
     try {
         if (!trie.root || Object.keys(trie.root.children).length === 0) {
-            await initializeTrie();
+            await initializeData();
         }
-        const results = trie.search(q);
+        let results = trie.search(q);
+        if (results.length === 0) {
+            results = trie.fuzzySearch(q);
+        }
         res.json(results);
     } catch (err) {
         console.error(err);
@@ -175,7 +190,7 @@ app.put('/api/faculty/:id', async (req, res) => {
             'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department) WHERE id = $5 RETURNING *',
             [room_number, floor_number, specialization, department, id]
         );
-        initializeTrie();
+        initializeData();
         res.json(result.rows[0]);
     } catch (err) {
         console.error(err);
@@ -191,7 +206,7 @@ app.post('/api/faculty', async (req, res) => {
             'INSERT INTO faculty (name, department, room_number, floor_number, aliases) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [name, department, room_number, floor_number, aliases]
         );
-        initializeTrie();
+        initializeData();
         res.json(insertRes.rows[0]);
     } catch (err) {
         console.error(err);
@@ -212,7 +227,7 @@ app.post('/api/signup', async (req, res) => {
             'INSERT INTO users (username, password_hash, faculty_id) VALUES ($1, $2, $3)',
             [name, password, facultyId]
         );
-        initializeTrie();
+        initializeData();
         res.json({ success: true, message: 'Account created', facultyId });
     } catch (err) {
         console.error(err);
@@ -241,6 +256,37 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/timetable', async (req, res) => {
     const { faculty_id, day_of_week, start_time, end_time, course_name } = req.body;
     try {
+        // --- Conflict Detection using Segment Tree ---
+        const existingRes = await pool.query(
+            'SELECT * FROM timetables WHERE faculty_id = $1 AND day_of_week = $2',
+            [faculty_id, day_of_week]
+        );
+        const existing = existingRes.rows;
+
+        // Map time to minutes (00:00 -> 24:00) = 0 -> 1440
+        const toMinutes = (timeStr) => {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        const segmentTree = new SegmentTree(1440); // 24 hours * 60 mins
+
+        // Load existing
+        existing.forEach(t => {
+            const start = toMinutes(t.start_time);
+            const end = toMinutes(t.end_time);
+            segmentTree.update(start, end - 1, 1); // [start, end-1] to avoid abutment conflict? Or pure overlap.
+        });
+
+        const newStart = toMinutes(start_time);
+        const newEnd = toMinutes(end_time);
+
+        // Check range max
+        const maxVal = segmentTree.query(newStart, newEnd - 1);
+        if (maxVal > 0) {
+            return res.status(409).json({ error: 'Conflict! Time slot overlaps with existing class.' });
+        }
+
         const insertRes = await pool.query(
             'INSERT INTO timetables (faculty_id, day_of_week, start_time, end_time, course_name) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [faculty_id, day_of_week, start_time, end_time, course_name]
@@ -250,6 +296,170 @@ app.post('/api/timetable', async (req, res) => {
         console.error(err);
         res.status(500).json({ error: 'Failed to add timetable' });
     }
+});
+
+// --- Office Hours (Priority Queue) ---
+app.post('/api/office-hours/enqueue', (req, res) => {
+    const { studentName, urgency } = req.body; // urgency: 1=High, 2=Medium, 3=Low
+    if (!studentName || !urgency) return res.status(400).json({ error: 'Missing fields' });
+
+    const node = priorityQueue.enqueue(studentName, parseInt(urgency));
+    res.json({ success: true, message: 'Added to queue', position: node });
+});
+
+app.get('/api/office-hours/next', (req, res) => {
+    const nextStudent = priorityQueue.dequeue();
+    if (!nextStudent) return res.json({ message: 'Queue is empty' });
+    res.json(nextStudent);
+});
+
+app.get('/api/office-hours/peek', (req, res) => {
+    const nextStudent = priorityQueue.peek();
+    if (!nextStudent) return res.json({ message: 'Queue is empty' });
+    res.json(nextStudent);
+});
+
+// --- Meeting Scheduler (Interval Trees) ---
+app.post('/api/meeting/find-slots', async (req, res) => {
+    const { facultyIds, date } = req.body; // date in "YYYY-MM-DD" or just day of week
+    // For simplicity, assume "Monday" etc. passed or derived. 
+    // Let's expect 'day_of_week' for now.
+    const { day_of_week } = req.body;
+
+    if (!facultyIds || !Array.isArray(facultyIds) || !day_of_week) {
+        return res.status(400).json({ error: 'Invalid input' });
+    }
+
+    try {
+        // Fetch timetables for all faculty on that day
+        const result = await pool.query(
+            'SELECT * FROM timetables WHERE faculty_id = ANY($1) AND day_of_week = $2',
+            [facultyIds, day_of_week]
+        );
+        const timetables = result.rows;
+
+        // Build Interval Tree for each faculty
+        // Actually, we can just merge all unavailable times for the group logic.
+        // Or find intersection of free times.
+        // Let's do: Find free slots for each, then find intersection.
+
+        // Define working hours (e.g., 09:00 to 17:00)
+        // Convert times to minutes for easier math? Or keep string "HH:MM" comparison
+        // "HH:MM" comparison works lexicographically. 
+        const WORK_START = "09:00";
+        const WORK_END = "17:00";
+
+        const facultyGaps = [];
+
+        for (const fId of facultyIds) {
+            const tree = new IntervalTree();
+            const fTimetable = timetables.filter(t => t.faculty_id === fId);
+            fTimetable.forEach(t => {
+                tree.insert(t.start_time.slice(0, 5), t.end_time.slice(0, 5));
+            });
+            const gaps = tree.findGaps(WORK_START, WORK_END);
+            facultyGaps.push(gaps);
+        }
+
+        // Find intersection of all gap lists
+        if (facultyGaps.length === 0) return res.json([]);
+
+        let commonSlots = facultyGaps[0];
+
+        for (let i = 1; i < facultyGaps.length; i++) {
+            const currentGaps = facultyGaps[i];
+            const nextCommon = [];
+
+            // Intersect commonSlots with currentGaps
+            let p1 = 0, p2 = 0;
+            while (p1 < commonSlots.length && p2 < currentGaps.length) {
+                const s1 = commonSlots[p1];
+                const s2 = currentGaps[p2];
+
+                // Max of starts, Min of ends
+                const start = s1.start > s2.start ? s1.start : s2.start;
+                const end = s1.end < s2.end ? s1.end : s2.end;
+
+                if (start < end) {
+                    nextCommon.push({ start, end });
+                }
+
+                if (s1.end < s2.end) {
+                    p1++;
+                } else {
+                    p2++;
+                }
+            }
+            commonSlots = nextCommon;
+        }
+
+        res.json(commonSlots);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error finding slots' });
+    }
+});
+
+// --- Faculty Recommendations (Graph) ---
+app.get('/api/recommendations/:facultyId', async (req, res) => {
+    const { facultyId } = req.params;
+    try {
+        const similarIds = graph.recommend(parseInt(facultyId));
+        if (similarIds.length === 0) return res.json([]);
+
+        const result = await pool.query('SELECT * FROM faculty WHERE id = ANY($1)', [similarIds]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error getting recommendations' });
+    }
+});
+
+// --- Timetable Optimizer (Backtracking) ---
+app.post('/api/timetable/optimize', async (req, res) => {
+    // courses: [{ id: 1, name: 'CS101', facultyId: 5, hours: 2 }]
+    const { courses } = req.body;
+    if (!courses || !Array.isArray(courses)) return res.status(400).json({ error: 'Invalid courses' });
+
+    try {
+        // Fetch existing constraints
+        const result = await pool.query('SELECT * FROM timetables');
+        const existingTimetable = result.rows;
+
+        // Simplify input: Split multi-hour courses into single hour chunks for the scheduler
+        const expandedCourses = [];
+        courses.forEach(c => {
+            const hours = c.hours || 1;
+            for (let i = 0; i < hours; i++) {
+                expandedCourses.push({ ...c, chunkIndex: i });
+            }
+        });
+
+        const optimizedSchedule = scheduler.optimize(expandedCourses, existingTimetable);
+
+        if (!optimizedSchedule) {
+            return res.status(409).json({ error: 'Conflict! Cannot schedule all courses.' });
+        }
+
+        res.json(optimizedSchedule);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Optimization failed' });
+    }
+});
+
+// --- Smart Notifications (Heap-based) ---
+app.post('/api/notifications/schedule', (req, res) => {
+    const { message, dueTime } = req.body;
+    if (!message || !dueTime) return res.status(400).json({ error: 'Missing fields' });
+
+    notificationManager.schedule(message, dueTime);
+    res.json({ success: true, message: 'Notification scheduled' });
+});
+
+app.get('/api/notifications/due', (req, res) => {
+    const due = notificationManager.getDueNotifications();
+    res.json(due);
 });
 
 app.delete('/api/timetable/:id', async (req, res) => {
@@ -267,10 +477,10 @@ app.delete('/api/timetable/:id', async (req, res) => {
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT} (Timezone: Asia/Kolkata)`);
-        initializeTrie();
+        initializeData();
     });
 } else {
-    initializeTrie();
+    initializeData();
 }
 
 module.exports = app;
