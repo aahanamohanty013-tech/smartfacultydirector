@@ -45,6 +45,7 @@ const FacultyList = () => {
                                     <th className="p-6 font-semibold">Profile</th>
                                     <th className="p-6 font-semibold">Name & Alias (Shortform)</th>
                                     <th className="p-6 font-semibold">Department</th>
+                                    <th className="p-6 font-semibold">Cabin</th>
                                     <th className="p-6 font-semibold">Specialization</th>
                                     <th className="p-6 font-semibold text-right">Action</th>
                                 </tr>
@@ -84,6 +85,11 @@ const FacultyList = () => {
                                         {/* Department Column */}
                                         <td className="p-6 text-white/80 font-medium">
                                             {faculty.department}
+                                        </td>
+
+                                        {/* Cabin Column */}
+                                        <td className="p-6 text-white/80 font-mono text-sm">
+                                            {faculty.room_number || "--"}
                                         </td>
 
                                         {/* Specialization Column */}
