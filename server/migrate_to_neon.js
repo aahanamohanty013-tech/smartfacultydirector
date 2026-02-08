@@ -13,7 +13,11 @@ const localPool = new Pool({
 });
 
 // Neon DB (Target)
-const neonConnectionString = 'postgresql://neondb_owner:npg_ELY1Ct6ByHDu@ep-aged-cake-ah52k9am-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const neonConnectionString = process.env.NEON_DATABASE_URL;
+if (!neonConnectionString) {
+    console.error("Error: NEON_DATABASE_URL environment variable is not set.");
+    process.exit(1);
+}
 const neonPool = new Pool({
     connectionString: neonConnectionString,
     ssl: { rejectUnauthorized: false } // Neon usually requires SSL
