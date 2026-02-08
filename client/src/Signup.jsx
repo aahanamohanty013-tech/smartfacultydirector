@@ -6,6 +6,7 @@ const Signup = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
+        email: '',
         shortform: '',
         specialization: '',
         password: ''
@@ -33,7 +34,7 @@ const Signup = () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Signup failed');
 
-            alert('Account created! Please log in.');
+            alert('Account created! Please check your email inbox (and server console) to verify your account before logging in.');
             navigate('/login');
         } catch (err) {
             console.error('Signup Error:', err);
@@ -67,6 +68,10 @@ const Signup = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                         <input type="text" name="name" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.name} onChange={handleChange} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input type="email" name="email" required placeholder="e.g. name@university.edu" className={inputClass} value={formData.email} onChange={handleChange} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Alias (Shortform)</label>

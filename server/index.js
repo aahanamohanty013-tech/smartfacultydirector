@@ -1,5 +1,6 @@
 /* server/index.js */
 const express = require('express');
+const crypto = require('crypto');
 const cors = require('cors');
 const { Pool } = require('pg');
 require('dotenv').config();
@@ -225,22 +226,67 @@ app.post('/api/faculty', async (req, res) => {
 
 // Auth: Signup
 app.post('/api/signup', async (req, res) => {
-    const { name, shortform, password, specialization } = req.body;
+    const { name, shortform, password, specialization, email } = req.body;
     try {
+        // Check if email already exists
+        const emailCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (emailCheck.rows.length > 0) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+
         const facultyRes = await pool.query(
             'INSERT INTO faculty (name, department, room_number, floor_number, aliases, specialization) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [name, 'Computer Science', 'TBD', 'TBD', [shortform], specialization || '']
         );
         const facultyId = facultyRes.rows[0].id;
+
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+
         await pool.query(
-            'INSERT INTO users (username, password_hash, faculty_id) VALUES ($1, $2, $3)',
-            [name, password, facultyId]
+            'INSERT INTO users (username, password_hash, faculty_id, email, is_verified, verification_token) VALUES ($1, $2, $3, $4, $5, $6)',
+            [name, password, facultyId, email, false, verificationToken] // is_verified = false
         );
+
+        // Mock Email Sending (Log to console)
+        const verifyLink = `http://${req.headers.host}/api/verify/${verificationToken}`;
+        console.log(`\n📧 [MOCK EMAIL] Verification Link for ${email}: ${verifyLink}\n`);
+
         initializeData();
-        res.json({ success: true, message: 'Account created', facultyId });
+        res.json({ success: true, message: 'Account created. Please check your email to verify.', facultyId });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Signup failed. Username/Shortform might be taken.' });
+        if (err.constraint === 'users_username_key') {
+            return res.status(500).json({ error: 'Username already taken.' });
+        }
+        res.status(500).json({ error: 'Signup failed.' });
+    }
+});
+
+// Auth: Verify Email
+app.get('/api/verify/:token', async (req, res) => {
+    const { token } = req.params;
+    try {
+        const result = await pool.query(
+            'UPDATE users SET is_verified = TRUE, verification_token = NULL WHERE verification_token = $1 RETURNING *',
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).send('<h1>Invalid or Expired Verification Token</h1>');
+        }
+
+        // Redirect to login page on frontend
+        // Assuming frontend is on port 5173 (dev) or same host (prod)
+        // Ideally, use config or env for frontend URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        res.send(`
+            <h1>Email Verified!</h1>
+            <p>You can now <a href="${frontendUrl}/login">login here</a>.</p>
+            <script>setTimeout(() => window.location.href = "${frontendUrl}/login", 3000)</script>
+        `);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
     }
 });
 
@@ -253,6 +299,10 @@ app.post('/api/login', async (req, res) => {
 
         const user = result.rows[0];
         if (user.password_hash !== password) return res.status(401).json({ error: 'Invalid credentials' });
+
+        if (!user.is_verified) {
+            return res.status(403).json({ error: 'Please verify your email address before logging in.' });
+        }
 
         res.json({ success: true, username: user.username, facultyId: user.faculty_id });
     } catch (err) {
