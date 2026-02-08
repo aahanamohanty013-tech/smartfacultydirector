@@ -25,7 +25,12 @@ const FacultyList = () => {
 
     const filteredFaculties = selectedDepartment === 'All'
         ? faculties
-        : faculties.filter(f => f.department === selectedDepartment || (selectedDepartment === 'ECE Dept' && f.department === 'Electronics and Communication'));
+        : faculties.filter(f => {
+            if (selectedDepartment === 'ECE Dept') {
+                return f.department?.trim() === 'Electronics and Communication' || f.department?.includes('Electronics');
+            }
+            return f.department === selectedDepartment;
+        });
 
     const departments = ['All', 'Computer Science', 'Electronics and Communication', 'Mathematics', 'Physics', 'Chemistry'];
 
