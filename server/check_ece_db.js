@@ -13,11 +13,15 @@ const pool = new Pool({
 
 const check = async () => {
     try {
-        const res = await pool.query("SELECT name, department, specialization FROM faculty WHERE department = 'Electronics and Communication' ORDER BY id ASC");
-        console.log(`Found ${res.rowCount} ECE Faculty members in database:`);
-        res.rows.forEach((row, index) => {
-            console.log(`${index + 1}. ${row.name} - ${row.specialization || 'No Specialization'}`);
-        });
+        const countRes = await pool.query("SELECT count(*) FROM faculty");
+        console.log(`Total Faculty Count: ${countRes.rows[0].count}`);
+
+        const eceCount = await pool.query("SELECT count(*) FROM faculty WHERE department = 'Electronics and Communication'");
+        console.log(`ECE Faculty Count: ${eceCount.rows[0].count}`);
+
+        const maxIdRes = await pool.query("SELECT MAX(id) FROM faculty");
+        console.log(`Max ID: ${maxIdRes.rows[0].max}`);
+
         process.exit(0);
     } catch (err) {
         console.error(err);

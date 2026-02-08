@@ -23,14 +23,14 @@ const FacultyList = () => {
             });
     }, []);
 
-    const filteredFaculties = selectedDepartment === 'All'
+    const filteredFaculties = (selectedDepartment === 'All'
         ? faculties
         : faculties.filter(f => {
             if (selectedDepartment === 'ECE Dept') {
                 return f.department?.trim() === 'Electronics and Communication' || f.department?.includes('Electronics');
             }
             return f.department === selectedDepartment;
-        });
+        })).sort((a, b) => a.name.localeCompare(b.name));
 
     const departments = ['All', 'Computer Science', 'Electronics and Communication', 'Mathematics', 'Physics', 'Chemistry'];
 
