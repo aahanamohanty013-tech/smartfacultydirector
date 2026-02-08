@@ -7,6 +7,7 @@ const FacultyList = () => {
     const [faculties, setFaculties] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedDepartment, setSelectedDepartment] = useState('All');
 
     useEffect(() => {
         fetch(`${API_URL}/api/faculties`)
@@ -22,6 +23,12 @@ const FacultyList = () => {
             });
     }, []);
 
+    const filteredFaculties = selectedDepartment === 'All'
+        ? faculties
+        : faculties.filter(f => f.department === selectedDepartment || (selectedDepartment === 'ECE Dept' && f.department === 'Electronics and Communication'));
+
+    const departments = ['All', 'Computer Science', 'Electronics and Communication', 'Mathematics', 'Physics', 'Chemistry'];
+
     if (loading) return <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center text-white font-sans text-xl animate-pulse">Loading Faculty Directory...</div>;
     if (error) return <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center text-white font-sans">{error}</div>;
 
@@ -34,7 +41,24 @@ const FacultyList = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col items-center mb-10 text-center animate-fade-in-up">
                     <h1 className="text-4xl font-bold mb-2">Faculty Directory</h1>
-                    <p className="text-white/70">Connect with our esteemed professors</p>
+                    <p className="text-white/70 mb-6">Connect with our esteemed professors</p>
+
+                    <div className="relative">
+                        <select
+                            value={selectedDepartment}
+                            onChange={(e) => setSelectedDepartment(e.target.value)}
+                            className="appearance-none bg-white/10 border border-white/20 text-white py-3 px-6 pr-10 rounded-full focus:outline-none focus:border-pink-400 hover:bg-white/20 transition cursor-pointer font-medium"
+                        >
+                            <option value="All" className="bg-purple-900 text-white">All Departments</option>
+                            <option value="Computer Science" className="bg-purple-900 text-white">Computer Science</option>
+                            <option value="ECE Dept" className="bg-purple-900 text-white">ECE Dept</option>
+                            <option value="Mathematics" className="bg-purple-900 text-white">Mathematics</option>
+                            <option value="Physics" className="bg-purple-900 text-white">Physics</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-white">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 shadow-2xl animate-fade-in-up delay-100">
@@ -51,7 +75,7 @@ const FacultyList = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10">
-                                {faculties.map((faculty) => (
+                                {filteredFaculties.map((faculty) => (
                                     <tr key={faculty.id} className="hover:bg-white/5 transition duration-200 group">
 
                                         {/* Avatar Column */}
