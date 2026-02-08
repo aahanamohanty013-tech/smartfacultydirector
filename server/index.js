@@ -247,8 +247,38 @@ app.post('/api/signup', async (req, res) => {
             [name, password, facultyId, email, false, verificationToken] // is_verified = false
         );
 
-        // Mock Email Sending (Log to console)
         const verifyLink = `http://${req.headers.host}/api/verify/${verificationToken}`;
+
+        // --- Email Logic ---
+        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+            const nodemailer = require('nodemailer');
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_APP_PASSWORD
+                }
+            });
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'Smart Faculty Directory - Verify your Email',
+                html: `
+                    <h2>Welcome to Smart Faculty Directory!</h2>
+                    <p>Please click the link below to verify your account:</p>
+                    <a href="${verifyLink}" style="padding: 10px 20px; background-color: #7c2ae8; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
+                    <p>Or copy this link: ${verifyLink}</p>
+                `
+            };
+
+            await transporter.sendMail(mailOptions).then(info => {
+                console.log('Email sent: ' + info.response);
+            }).catch(error => {
+                console.error('Error sending email:', error);
+            });
+        }
+
         console.log(`\n📧 [MOCK EMAIL] Verification Link for ${email}: ${verifyLink}\n`);
 
         initializeData();
