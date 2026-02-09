@@ -228,6 +228,11 @@ app.post('/api/faculty', async (req, res) => {
 app.post('/api/signup', async (req, res) => {
     const { name, shortform, password, specialization, email } = req.body;
     try {
+        // Domain Check
+        if (!email.endsWith('@rvce.edu.in')) {
+            return res.status(400).json({ error: 'invalid email id only for rvce faculty' });
+        }
+
         // Check if email already exists
         const emailCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (emailCheck.rows.length > 0) {
