@@ -29,7 +29,7 @@ const pool = new Pool({
     database: process.env.DB_NAME || 'smart_faculty',
     password: process.env.DB_PASSWORD || 'password',
     port: process.env.DB_PORT || 5432,
-    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+    ssl: (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('sslmode=require')) ? { rejectUnauthorized: false } : false,
 });
 
 // Initialize Data Structures (Trie, Graph)
@@ -239,6 +239,12 @@ app.post('/api/signup', async (req, res) => {
             return res.status(400).json({ error: 'Email already registered' });
         }
 
+        // Check if shortform (alias) already exists
+        const aliasCheck = await pool.query('SELECT * FROM faculty WHERE $1 = ANY(aliases)', [shortform]);
+        if (aliasCheck.rows.length > 0) {
+            return res.status(400).json({ error: `Shortform '${shortform}' is already taken. Please choose another one.` });
+        }
+
         const facultyRes = await pool.query(
             'INSERT INTO faculty (name, department, room_number, floor_number, aliases, specialization) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [name, 'Computer Science', 'TBD', 'TBD', [shortform], specialization || '']
@@ -327,9 +333,9 @@ app.get('/api/verify/:token', async (req, res) => {
 
 // Auth: Login
 app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
     try {
-        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
         const user = result.rows[0];

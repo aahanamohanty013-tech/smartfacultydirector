@@ -4,7 +4,7 @@ import { API_URL } from './config';
 
 const Login = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({ username: '', password: '' });
+    const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -55,8 +55,8 @@ const Login = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Username (Full Name)</label>
-                        <input type="text" name="username" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.username} onChange={handleChange} />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input type="email" name="email" required placeholder="e.g. name@rvce.edu.in" className={inputClass} value={formData.email} onChange={handleChange} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
