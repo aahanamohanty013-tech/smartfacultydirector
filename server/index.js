@@ -69,7 +69,21 @@ const initializeData = async () => {
         facultyList.forEach(faculty => {
             trie.insert(faculty.name, faculty);
             if (faculty.aliases && Array.isArray(faculty.aliases)) {
-                faculty.aliases.forEach(alias => trie.insert(alias, faculty));
+                faculty.aliases.forEach(alias => {
+                    trie.insert(alias, faculty);
+
+                    // Strip titles (Dr., Mrs., Mr., Prof., Ms.) and extra whitespace
+                    const stripped = alias.replace(/^(Dr\.|Mrs\.|Mr\.|Prof\.|Ms\.)\s*/i, '');
+                    if (stripped !== alias && stripped.length > 0) {
+                        trie.insert(stripped, faculty);
+                    }
+
+                    // Also remove dots from the stripped version (e.g., "K.C.G" -> "KCG")
+                    const noDots = stripped.replace(/\./g, '');
+                    if (noDots !== stripped && noDots.length > 1) {
+                        trie.insert(noDots, faculty);
+                    }
+                });
             }
             const parts = faculty.name.split(' ');
             if (parts.length > 1) {
