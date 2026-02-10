@@ -41,7 +41,7 @@ const CampusMap = () => {
                 {/* ECE Department Pin */}
                 <div
                     className="absolute group cursor-pointer"
-                    style={{ top: '56%', right: '42%' }}
+                    style={{ top: '48%', right: '42%' }}
                 >
                     <div className="relative">
                         <div className="text-4xl filter drop-shadow-lg animate-bounce delay-150">📍</div>
