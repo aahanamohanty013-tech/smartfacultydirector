@@ -36,6 +36,31 @@ const pool = new Pool({
 const initializeData = async () => {
     try {
         console.log('Initializing Data Structures...');
+
+        // --- Auto-Migration for Production ---
+        await pool.query(`
+            DO $$
+            BEGIN
+                -- Add is_on_leave if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='faculty' AND column_name='is_on_leave') THEN
+                    ALTER TABLE faculty ADD COLUMN is_on_leave BOOLEAN DEFAULT FALSE;
+                END IF;
+
+                -- Add is_on_exam_duty if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='faculty' AND column_name='is_on_exam_duty') THEN
+                    ALTER TABLE faculty ADD COLUMN is_on_exam_duty BOOLEAN DEFAULT FALSE;
+                END IF;
+
+                -- Add exam_duty_time if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='faculty' AND column_name='exam_duty_time') THEN
+                    ALTER TABLE faculty ADD COLUMN exam_duty_time VARCHAR(255);
+                END IF;
+            END
+            $$;
+        `);
+        console.log('Schema verification completed.');
+        // -------------------------------------
+
         trie.clear();
         const res = await pool.query('SELECT * FROM faculty');
         const facultyList = res.rows;
