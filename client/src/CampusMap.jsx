@@ -38,10 +38,23 @@ const CampusMap = () => {
                     </div>
                 </div>
 
+                {/* ECE Department Pin */}
+                <div
+                    className="absolute group cursor-pointer"
+                    style={{ top: '55%', right: '28%' }}
+                >
+                    <div className="relative">
+                        <div className="text-4xl filter drop-shadow-lg animate-bounce delay-150">📍</div>
+                        <div className="absolute top-10 left-1/2 transform -translate-x-1/2 bg-white/90 text-blue-900 text-xs font-bold px-3 py-1 rounded-full shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            ECE Department
+                        </div>
+                    </div>
+                </div>
+
                 {/* Legend Overlay */}
                 <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur rounded-lg p-3 shadow-lg border border-gray-100 max-w-xs">
                     <h3 className="text-sm font-bold text-gray-800 mb-1">Map Guide</h3>
-                    <p className="text-xs text-gray-600">The CSE Department is highlighted. Hover over pins for details.</p>
+                    <p className="text-xs text-gray-600">CSE & ECE Departments highlighted. Hover over pins for details.</p>
                 </div>
             </div>
         </div>

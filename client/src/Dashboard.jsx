@@ -186,6 +186,71 @@ const Dashboard = () => {
                         </button>
                     </div>
 
+                    {/* EXAM DUTY TOGGLE */}
+                    <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="font-bold text-lg text-white">Exam Duty: {faculty.is_on_exam_duty ? '📝 On Duty' : '❌ Off Duty'}</div>
+                                <div className="text-xs text-white/60">Enable this when you have invigilation duty.</div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const newStatus = !faculty.is_on_exam_duty;
+                                    const updates = { is_on_exam_duty: newStatus };
+                                    if (!newStatus) updates.exam_duty_time = ''; // Clear time if turning off
+
+                                    // Optimistic Update
+                                    setFaculty({ ...faculty, ...updates });
+
+                                    // API Call
+                                    fetch(`${API_URL}/api/faculty/${faculty.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(updates)
+                                    }).then(res => {
+                                        if (!res.ok) alert("Failed to update exam duty status");
+                                    });
+                                }}
+                                className={`px-4 py-2 rounded-lg font-bold text-sm transition ${faculty.is_on_exam_duty ? 'bg-purple-500 hover:bg-purple-600' : 'bg-gray-500 hover:bg-gray-600'}`}
+                            >
+                                {faculty.is_on_exam_duty ? 'Disable Exam Duty' : 'Enable Exam Duty'}
+                            </button>
+                        </div>
+
+                        {faculty.is_on_exam_duty && (
+                            <div className="animate-fade-in-up">
+                                <label className={glassLabel}>Exam Time / Details</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        className={glassInput}
+                                        placeholder="e.g. 10:00 AM - 1:00 PM (Room 404)"
+                                        value={faculty.exam_duty_time || ''}
+                                        onChange={(e) => {
+                                            const newTime = e.target.value;
+                                            setFaculty({ ...faculty, exam_duty_time: newTime });
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            fetch(`${API_URL}/api/faculty/${faculty.id}`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ exam_duty_time: faculty.exam_duty_time })
+                                            }).then(res => {
+                                                if (res.ok) alert("Time Updated");
+                                                else alert("Failed to save time");
+                                            });
+                                        }}
+                                        className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-white font-bold text-sm"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {editMode ? (
                         <form onSubmit={handleProfileUpdate} className="space-y-4">
                             <div>

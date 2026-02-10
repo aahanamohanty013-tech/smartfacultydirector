@@ -66,13 +66,22 @@ const initializeData = async () => {
 };
 
 // --- Helper Logic: Availability (Fixed for IST Timezone) ---
-const calculateAvailability = (timetables, isOnLeave = false) => {
+const calculateAvailability = (timetables, isOnLeave = false, isOnExamDuty = false, examDutyTime = '') => {
     // 0. CHECK "ON LEAVE" STATUS
     if (isOnLeave) {
         return {
             status: 'On Leave',
             currentDetails: 'Faculty is currently on leave.',
             bestVisitingTime: 'On Leave'
+        };
+    }
+
+    // 0.5 CHECK "EXAM DUTY" STATUS
+    if (isOnExamDuty) {
+        return {
+            status: 'Exam Duty',
+            currentDetails: `Faculty is on exam duty at: ${examDutyTime}`,
+            bestVisitingTime: 'After Exam Duty'
         };
     }
 
@@ -183,7 +192,7 @@ app.get('/api/faculty/:id', async (req, res) => {
         const timetableRes = await pool.query('SELECT * FROM timetables WHERE faculty_id = $1 ORDER BY day_of_week, start_time', [id]);
         const timetables = timetableRes.rows;
 
-        const availability = calculateAvailability(timetables, faculty.is_on_leave);
+        const availability = calculateAvailability(timetables, faculty.is_on_leave, faculty.is_on_exam_duty, faculty.exam_duty_time);
         res.json({ ...faculty, ...availability, timetables });
     } catch (err) {
         console.error(err);
@@ -194,11 +203,11 @@ app.get('/api/faculty/:id', async (req, res) => {
 // Update Faculty
 app.put('/api/faculty/:id', async (req, res) => {
     const { id } = req.params;
-    const { room_number, floor_number, specialization, department, is_on_leave } = req.body;
+    const { room_number, floor_number, specialization, department, is_on_leave, is_on_exam_duty, exam_duty_time } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department), is_on_leave = COALESCE($5, is_on_leave) WHERE id = $6 RETURNING *',
-            [room_number, floor_number, specialization, department, is_on_leave, id]
+            'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department), is_on_leave = COALESCE($5, is_on_leave), is_on_exam_duty = COALESCE($6, is_on_exam_duty), exam_duty_time = COALESCE($7, exam_duty_time) WHERE id = $8 RETURNING *',
+            [room_number, floor_number, specialization, department, is_on_leave, is_on_exam_duty, exam_duty_time, id]
         );
         initializeData();
         res.json(result.rows[0]);
