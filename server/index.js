@@ -64,6 +64,20 @@ const initializeData = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='faculty' AND column_name='research_papers') THEN
                     ALTER TABLE faculty ADD COLUMN research_papers TEXT;
                 END IF;
+
+                -- Add meeting_requests table if missing
+                IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename  = 'meeting_requests') THEN
+                    CREATE TABLE meeting_requests (
+                        id SERIAL PRIMARY KEY,
+                        faculty_id INTEGER REFERENCES faculty(id) ON DELETE CASCADE,
+                        student_name VARCHAR(255),
+                        title VARCHAR(255),
+                        day_of_week VARCHAR(50),
+                        start_time VARCHAR(10),
+                        end_time VARCHAR(10),
+                        status VARCHAR(50) DEFAULT 'Pending'
+                    );
+                END IF;
             END
             $$;
         `);
@@ -265,6 +279,33 @@ app.get('/api/faculty/:id', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Student: Submit Meeting Request
+app.post('/api/meeting-requests', async (req, res) => {
+    const { faculty_id, student_name, title, day_of_week, start_time, end_time } = req.body;
+    try {
+        const insertRes = await pool.query(
+            'INSERT INTO meeting_requests (faculty_id, student_name, title, day_of_week, start_time, end_time) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [faculty_id, student_name, title, day_of_week, start_time, end_time]
+        );
+        res.json(insertRes.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to submit request' });
+    }
+});
+
+// Faculty: Get Meeting Requests
+app.get('/api/faculty/:id/meeting-requests', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM meeting_requests WHERE faculty_id = $1 ORDER BY day_of_week, start_time', [id]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch requests' });
     }
 });
 
@@ -580,10 +621,10 @@ app.post('/api/meeting/find-slots', async (req, res) => {
 // --- Smart Appointment Scheduling (Greedy Algorithm) ---
 app.post('/api/faculty/:id/smart-meetings', async (req, res) => {
     const { id } = req.params;
-    const { requests, day_of_week } = req.body;
+    const { day_of_week } = req.body;
 
-    if (!requests || !Array.isArray(requests) || !day_of_week) {
-        return res.status(400).json({ error: 'Invalid input. Provide requests array and day_of_week.' });
+    if (!day_of_week) {
+        return res.status(400).json({ error: 'Invalid input. Provide day_of_week.' });
     }
 
     try {
@@ -599,8 +640,26 @@ app.post('/api/faculty/:id/smart-meetings', async (req, res) => {
             end: t.end_time.slice(0, 5)
         }));
 
+        // Fetch all 'Pending' requests from DB
+        const reqsResult = await pool.query(
+            "SELECT * FROM meeting_requests WHERE faculty_id = $1 AND day_of_week = $2 AND status = 'Pending'",
+            [id, day_of_week]
+        );
+        const requests = reqsResult.rows.map(r => ({ ...r, start: r.start_time.slice(0,5), end: r.end_time.slice(0,5) }));
+
         // Use the Greedy Algorithm to find optimal non-overlapping meetings
         const optimalMeetings = IntervalScheduler.optimizeMeetings(requests, existingBlocks);
+        
+        // Now update DB
+        const acceptedIds = optimalMeetings.map(m => m.id);
+        const rejectedIds = requests.filter(r => !acceptedIds.includes(r.id)).map(r => r.id);
+
+        if (acceptedIds.length > 0) {
+            await pool.query("UPDATE meeting_requests SET status = 'Approved' WHERE id = ANY($1)", [acceptedIds]);
+        }
+        if (rejectedIds.length > 0) {
+            await pool.query("UPDATE meeting_requests SET status = 'Rejected' WHERE id = ANY($1)", [rejectedIds]);
+        }
 
         res.json({
             facultyId: id,

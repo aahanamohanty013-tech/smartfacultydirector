@@ -8,52 +8,33 @@ const FacultyProfile = () => {
     const [faculty, setFaculty] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Smart Scheduler State
-    const [isScheduling, setIsScheduling] = useState(false);
-    const [smartResults, setSmartResults] = useState(null);
-    const [schedulerError, setSchedulerError] = useState(null);
+    // Meeting Request State
+    const [meetingForm, setMeetingForm] = useState({
+        student_name: '',
+        title: '',
+        day_of_week: 'Monday',
+        start_time: '09:00',
+        end_time: '09:30'
+    });
+    const [requestStatus, setRequestStatus] = useState(null);
 
-    const runSmartScheduler = async () => {
-        setIsScheduling(true);
-        setSchedulerError(null);
-        
-        // Define some overlapping mock requests for testing
-        const meetingRequests = [
-            { id: 1, title: "Doubt Session A", start: "09:00", end: "09:30" },
-            { id: 2, title: "Project Review 1", start: "09:15", end: "09:45" },
-            { id: 3, title: "Quick Chat", start: "09:30", end: "09:45" },
-            { id: 4, title: "Research Update", start: "10:00", end: "10:30" },
-            { id: 5, title: "Mentorship", start: "10:15", end: "10:45" },
-            { id: 6, title: "Lab Prep", start: "14:00", end: "15:00" }, 
-            { id: 7, title: "Student Council", start: "14:30", end: "15:30" },
-            { id: 8, title: "Quick Meet", start: "15:00", end: "15:15" }
-        ];
-
-        // Determine current day of week to check against their real timetable
-        const dayOptions = { timeZone: 'Asia/Kolkata', weekday: 'long' };
-        const currentDay = new Intl.DateTimeFormat('en-US', dayOptions).format(new Date());
-
+    const submitMeetingRequest = async (e) => {
+        e.preventDefault();
+        setRequestStatus({ loading: true, message: null, error: null });
         try {
-            const res = await fetch(`${API_URL}/api/faculty/${id}/smart-meetings`, {
+            const res = await fetch(`${API_URL}/api/meeting-requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    requests: meetingRequests,
-                    day_of_week: currentDay
-                })
+                body: JSON.stringify({ ...meetingForm, faculty_id: id })
             });
-
-            const data = await res.json();
             if (res.ok) {
-                setSmartResults(data);
+                setRequestStatus({ loading: false, message: 'Request submitted! The faculty will auto-schedule it.', error: null });
+                setMeetingForm({ ...meetingForm, title: '', start_time: '', end_time: '' }); // Reset some fields
             } else {
-                setSchedulerError(data.error || 'Failed to run smart scheduler');
+                setRequestStatus({ loading: false, message: null, error: 'Failed to submit.' });
             }
         } catch (err) {
-            console.error(err);
-            setSchedulerError('Network error');
-        } finally {
-            setIsScheduling(false);
+            setRequestStatus({ loading: false, message: null, error: 'Network error.' });
         }
     };
 
@@ -174,70 +155,51 @@ const FacultyProfile = () => {
                     </div>
                 </div>
 
-                {/* Smart Appointment Scheduler */}
+                {/* Request Meeting */}
                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl shadow-sm border border-purple-100 overflow-hidden p-6 md:p-8">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:flex-wrap md:gap-4 mb-6">
-                        <div className="flex-1">
-                            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                                <span className="text-2xl mr-2">✨</span> Smart Appointment Scheduler
-                            </h2>
-                            <p className="text-sm text-gray-600 mt-1">
-                                Powered by <span className="font-semibold text-purple-700">Greedy Interval Scheduling</span>. 
-                                Automatically finds the maximum number of non-overlapping meetings from a messy list of requests.
-                            </p>
-                        </div>
-                        <button 
-                            onClick={runSmartScheduler}
-                            disabled={isScheduling}
-                            className={`mt-4 md:mt-0 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-all ${isScheduling ? 'bg-purple-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 hover:shadow-lg transform hover:-translate-y-0.5'}`}
-                        >
-                            {isScheduling ? 'Running Algorithm...' : 'Run Smart Scheduler'}
-                        </button>
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                            <span className="text-2xl mr-2">📅</span> Request a Meeting
+                        </h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Submit a request. The professor uses an <span className="font-semibold text-purple-700">Auto-Scheduler (Greedy Algorithm)</span> to perfectly organize all student requests!
+                        </p>
                     </div>
 
-                    {schedulerError && (
-                        <div className="p-4 bg-red-100 text-red-700 rounded-lg mb-6 text-sm border border-red-200">
-                            {schedulerError}
-                        </div>
-                    )}
-
-                    {smartResults && (
-                        <div className="bg-white rounded-xl p-6 shadow-inner border border-purple-50 animate-fade-in-up">
-                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-                                <div>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Results for</span>
-                                    <div className="text-lg font-bold text-gray-800">{smartResults.day}</div>
-                                </div>
-                                <div className="flex gap-4 text-center">
-                                    <div className="bg-gray-50 px-4 py-2 rounded-lg">
-                                        <div className="text-2xl font-bold text-gray-700">{smartResults.totalRequests}</div>
-                                        <div className="text-xs text-gray-500 font-medium">Total Requests</div>
-                                    </div>
-                                    <div className="bg-purple-50 px-4 py-2 rounded-lg border border-purple-100 shadow-sm">
-                                        <div className="text-2xl font-bold text-purple-700">{smartResults.acceptedMeetings}</div>
-                                        <div className="text-xs text-purple-600 font-medium">Accepted (Maximized)</div>
-                                    </div>
-                                </div>
+                    <form onSubmit={submitMeetingRequest} className="bg-white p-6 rounded-xl shadow-inner border border-purple-50 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Your Name</label>
+                                <input type="text" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.student_name} onChange={e => setMeetingForm({...meetingForm, student_name: e.target.value})} />
                             </div>
-
-                            <div className="space-y-3">
-                                {smartResults.meetings.map((meeting, idx) => (
-                                    <div key={idx} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition border border-transparent hover:border-gray-100 group">
-                                        <div className="bg-purple-100 text-purple-700 font-bold px-3 py-1 rounded-md text-sm font-mono mr-4 group-hover:bg-purple-200 transition">
-                                            {meeting.start} - {meeting.end}
-                                        </div>
-                                        <div className="font-medium text-gray-800">{meeting.title}</div>
-                                        <div className="ml-auto text-green-500 opacity-0 group-hover:opacity-100 transition">
-                                            <span className="text-sm font-bold flex items-center"><span className="mr-1 text-lg">✓</span> Scheduled</span>
-                                        </div>
-                                    </div>
-                                ))}
-                                {smartResults.meetings.length === 0 && (
-                                    <div className="text-center text-gray-500 py-4 italic">No optimal meetings could be scheduled.</div>
-                                )}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason / Title</label>
+                                <input type="text" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.title} onChange={e => setMeetingForm({...meetingForm, title: e.target.value})} placeholder="e.g. Project Review" />
                             </div>
                         </div>
-                    )}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Day</label>
+                                <select className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.day_of_week} onChange={e => setMeetingForm({...meetingForm, day_of_week: e.target.value})}>
+                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Time</label>
+                                <input type="time" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.start_time} onChange={e => setMeetingForm({...meetingForm, start_time: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Time</label>
+                                <input type="time" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.end_time} onChange={e => setMeetingForm({...meetingForm, end_time: e.target.value})} />
+                            </div>
+                        </div>
+                        <button type="submit" disabled={requestStatus?.loading} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md transition">
+                            {requestStatus?.loading ? 'Submitting...' : 'Submit Request'}
+                        </button>
+                        
+                        {requestStatus?.message && <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm font-bold text-center border border-green-200 mt-2">{requestStatus.message}</div>}
+                        {requestStatus?.error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm font-bold text-center border border-red-200 mt-2">{requestStatus.error}</div>}
+                    </form>
                 </div>
 
                 {/* Timetable */}

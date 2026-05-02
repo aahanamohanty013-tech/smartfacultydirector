@@ -9,6 +9,10 @@ const Dashboard = () => {
     const [faculty, setFaculty] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editMode, setEditMode] = useState(false);
+    
+    // Meeting Requests State
+    const [meetingRequests, setMeetingRequests] = useState([]);
+    const [isScheduling, setIsScheduling] = useState(false);
 
     // Form States
     const [formData, setFormData] = useState({});
@@ -41,6 +45,12 @@ const Dashboard = () => {
                 department: data.department,
                 research_papers: data.research_papers || ''
             });
+
+            // Fetch meeting requests
+            const reqRes = await fetch(`${API_URL}/api/faculty/${facultyId}/meeting-requests`);
+            const reqData = await reqRes.json();
+            setMeetingRequests(reqData);
+
             setLoading(false);
         } catch (err) {
             console.error("Failed to load data", err);
@@ -114,6 +124,34 @@ const Dashboard = () => {
             }
         } catch (err) {
             alert("Failed to delete");
+        }
+    };
+
+    const handleRunAutoScheduler = async () => {
+        setIsScheduling(true);
+        const pendingReqs = meetingRequests.filter(r => r.status === 'Pending');
+        if (pendingReqs.length === 0) {
+            alert("No pending requests to schedule!");
+            setIsScheduling(false);
+            return;
+        }
+        
+        const daysWithPending = [...new Set(pendingReqs.map(r => r.day_of_week))];
+        
+        try {
+            for (const day of daysWithPending) {
+                await fetch(`${API_URL}/api/faculty/${faculty.id}/smart-meetings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ day_of_week: day })
+                });
+            }
+            alert("Auto-Scheduling Complete! Optimal meetings approved.");
+            fetchFacultyData(faculty.id); // Refresh
+        } catch (err) {
+            alert("Failed to run scheduler");
+        } finally {
+            setIsScheduling(false);
         }
     };
 
@@ -367,6 +405,40 @@ const Dashboard = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Meeting Requests Section */}
+                <div className={`${sectionClass} flex flex-col md:col-span-2 mt-4`}>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold flex items-center"><span className="mr-2">📥</span> Meeting Requests</h2>
+                        <button 
+                            onClick={handleRunAutoScheduler}
+                            disabled={isScheduling}
+                            className={`px-4 py-2 rounded-lg font-bold shadow-md transition-all ${isScheduling ? 'bg-purple-400 cursor-not-allowed text-white/80' : 'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg'}`}
+                        >
+                            {isScheduling ? 'Processing...' : '✨ Run Auto-Scheduler'}
+                        </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {meetingRequests.length > 0 ? meetingRequests.map(req => (
+                            <div key={req.id} className={`p-4 rounded-xl border ${req.status === 'Approved' ? 'bg-green-500/10 border-green-500/30' : req.status === 'Rejected' ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/10'}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="font-bold text-white">{req.student_name}</div>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded ${req.status === 'Approved' ? 'bg-green-500/20 text-green-300' : req.status === 'Rejected' ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
+                                        {req.status}
+                                    </span>
+                                </div>
+                                <div className="text-sm text-white/80 mb-2">{req.title}</div>
+                                <div className="text-xs text-white/50 font-mono">
+                                    {req.day_of_week} • {req.start_time.slice(0,5)} - {req.end_time.slice(0,5)}
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="col-span-full text-center text-white/30 italic py-8">No meeting requests yet.</div>
+                        )}
+                    </div>
+                </div>
+
             </div>
         </div>
     );
