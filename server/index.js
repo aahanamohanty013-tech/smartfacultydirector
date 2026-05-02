@@ -16,6 +16,7 @@ const graph = require('./lib/Graph');
 const scheduler = require('./lib/Scheduler');
 const SegmentTree = require('./lib/SegmentTree');
 const notificationManager = require('./lib/NotificationManager');
+const IntervalScheduler = require('./lib/IntervalScheduler');
 
 // Middleware
 app.use(cors());
@@ -545,6 +546,45 @@ app.post('/api/meeting/find-slots', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Error finding slots' });
+    }
+});
+
+// --- Smart Appointment Scheduling (Greedy Algorithm) ---
+app.post('/api/faculty/:id/smart-meetings', async (req, res) => {
+    const { id } = req.params;
+    const { requests, day_of_week } = req.body;
+
+    if (!requests || !Array.isArray(requests) || !day_of_week) {
+        return res.status(400).json({ error: 'Invalid input. Provide requests array and day_of_week.' });
+    }
+
+    try {
+        // Fetch existing schedule for this faculty member on the specified day
+        const result = await pool.query(
+            'SELECT start_time, end_time FROM timetables WHERE faculty_id = $1 AND day_of_week = $2',
+            [id, day_of_week]
+        );
+        
+        // Format the existing blocks
+        const existingBlocks = result.rows.map(t => ({
+            start: t.start_time.slice(0, 5),
+            end: t.end_time.slice(0, 5)
+        }));
+
+        // Use the Greedy Algorithm to find optimal non-overlapping meetings
+        const optimalMeetings = IntervalScheduler.optimizeMeetings(requests, existingBlocks);
+
+        res.json({
+            facultyId: id,
+            day: day_of_week,
+            totalRequests: requests.length,
+            acceptedMeetings: optimalMeetings.length,
+            meetings: optimalMeetings
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to schedule smart meetings' });
     }
 });
 
