@@ -59,6 +59,11 @@ const initializeData = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='faculty' AND column_name='exam_duty_time') THEN
                     ALTER TABLE faculty ADD COLUMN exam_duty_time VARCHAR(255);
                 END IF;
+
+                -- Add research_papers if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='faculty' AND column_name='research_papers') THEN
+                    ALTER TABLE faculty ADD COLUMN research_papers TEXT;
+                END IF;
             END
             $$;
         `);
@@ -224,7 +229,8 @@ app.get('/api/search', async (req, res) => {
 
         // Augment with KMP Expertise Matches
         const kmpResults = globalFacultyCache.filter(f => 
-            f.specialization && KMP.search(f.specialization, q)
+            (f.specialization && KMP.search(f.specialization, q)) ||
+            (f.research_papers && KMP.search(f.research_papers, q))
         );
 
         // Merge, avoiding duplicates
@@ -265,11 +271,11 @@ app.get('/api/faculty/:id', async (req, res) => {
 // Update Faculty
 app.put('/api/faculty/:id', async (req, res) => {
     const { id } = req.params;
-    const { room_number, floor_number, specialization, department, is_on_leave, is_on_exam_duty, exam_duty_time } = req.body;
+    const { room_number, floor_number, specialization, department, is_on_leave, is_on_exam_duty, exam_duty_time, research_papers } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department), is_on_leave = COALESCE($5, is_on_leave), is_on_exam_duty = COALESCE($6, is_on_exam_duty), exam_duty_time = COALESCE($7, exam_duty_time) WHERE id = $8 RETURNING *',
-            [room_number, floor_number, specialization, department, is_on_leave, is_on_exam_duty, exam_duty_time, id]
+            'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department), is_on_leave = COALESCE($5, is_on_leave), is_on_exam_duty = COALESCE($6, is_on_exam_duty), exam_duty_time = COALESCE($7, exam_duty_time), research_papers = COALESCE($8, research_papers) WHERE id = $9 RETURNING *',
+            [room_number, floor_number, specialization, department, is_on_leave, is_on_exam_duty, exam_duty_time, research_papers, id]
         );
         initializeData();
         res.json(result.rows[0]);

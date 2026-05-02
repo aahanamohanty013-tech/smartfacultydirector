@@ -38,7 +38,8 @@ const Dashboard = () => {
                 room_number: data.room_number,
                 floor_number: data.floor_number,
                 specialization: data.specialization || '',
-                department: data.department
+                department: data.department,
+                research_papers: data.research_papers || ''
             });
             setLoading(false);
         } catch (err) {
@@ -271,6 +272,15 @@ const Dashboard = () => {
                                 <label className={glassLabel}>Specialization</label>
                                 <input className={glassInput} value={formData.specialization} onChange={e => setFormData({ ...formData, specialization: e.target.value })} />
                             </div>
+                            <div>
+                                <label className={glassLabel}>Research Papers / Bio</label>
+                                <textarea 
+                                    className={`${glassInput} min-h-[100px] resize-y`} 
+                                    value={formData.research_papers} 
+                                    onChange={e => setFormData({ ...formData, research_papers: e.target.value })} 
+                                    placeholder="List your research papers, publications, or detailed bio here..."
+                                />
+                            </div>
                             <button type="submit" className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 rounded-lg hover:shadow-lg transition">Save Changes</button>
                         </form>
                     ) : (
@@ -294,6 +304,15 @@ const Dashboard = () => {
                                 <div>
                                     <div className="text-xs text-white/50 uppercase">Specialization</div>
                                     <div className="font-semibold">{faculty.specialization || "Not set"}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-start p-3 bg-white/5 rounded-xl border border-white/5">
+                                <div className="text-3xl mr-4">📄</div>
+                                <div className="w-full">
+                                    <div className="text-xs text-white/50 uppercase">Research Papers & Bio</div>
+                                    <div className="font-semibold text-sm mt-1 whitespace-pre-wrap text-white/90">
+                                        {faculty.research_papers || "No research papers added."}
+                                    </div>
                                 </div>
                             </div>
 
