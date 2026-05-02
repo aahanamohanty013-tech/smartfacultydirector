@@ -17,6 +17,9 @@ const scheduler = require('./lib/Scheduler');
 const SegmentTree = require('./lib/SegmentTree');
 const notificationManager = require('./lib/NotificationManager');
 const IntervalScheduler = require('./lib/IntervalScheduler');
+const KMP = require('./lib/KMP');
+
+let globalFacultyCache = [];
 
 // Middleware
 app.use(cors());
@@ -65,6 +68,7 @@ const initializeData = async () => {
         trie.clear();
         const res = await pool.query('SELECT * FROM faculty');
         const facultyList = res.rows;
+        globalFacultyCache = facultyList;
 
         // Build Trie
         facultyList.forEach(faculty => {
@@ -214,6 +218,24 @@ app.get('/api/search', async (req, res) => {
         if (results.length === 0) {
             results = trie.fuzzySearch(q);
         }
+
+        // Tag name matches
+        results = results.map(f => ({ ...f, matchReason: 'name' }));
+
+        // Augment with KMP Expertise Matches
+        const kmpResults = globalFacultyCache.filter(f => 
+            f.specialization && KMP.search(f.specialization, q)
+        );
+
+        // Merge, avoiding duplicates
+        const existingIds = new Set(results.map(f => f.id));
+        kmpResults.forEach(f => {
+            if (!existingIds.has(f.id)) {
+                results.push({ ...f, matchReason: 'expertise' });
+                existingIds.add(f.id);
+            }
+        });
+
         res.json(results);
     } catch (err) {
         console.error(err);

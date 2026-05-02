@@ -76,8 +76,22 @@ const SearchBar = ({ premiumMode = false }) => {
                                 className="px-5 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-none transition flex justify-between items-center group"
                             >
                                 <div>
-                                    <div className="font-semibold text-gray-800 group-hover:text-blue-600 transition">{faculty.name}</div>
-                                    <div className="text-xs text-gray-500">{faculty.department}</div>
+                                    <div className="font-semibold text-gray-800 group-hover:text-blue-600 transition flex items-center">
+                                        {faculty.name}
+                                        {faculty.matchReason === 'expertise' && (
+                                            <span className="ml-2 text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-bold tracking-wide uppercase border border-indigo-200">
+                                                💡 Expertise Match
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-gray-500 flex items-center mt-0.5">
+                                        {faculty.department}
+                                        {faculty.matchReason === 'expertise' && faculty.specialization && (
+                                            <span className="ml-2 text-gray-400 truncate max-w-[150px] md:max-w-[250px] italic">
+                                                ({faculty.specialization})
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <span className="text-gray-300 group-hover:text-blue-400 text-sm">→</span>
                             </div>
