@@ -18,6 +18,53 @@ const SegmentTree = require('./lib/SegmentTree');
 const notificationManager = require('./lib/NotificationManager');
 const IntervalScheduler = require('./lib/IntervalScheduler');
 const KMP = require('./lib/KMP');
+const nodemailer = require('nodemailer');
+
+// --- Email Helper Function ---
+const sendVerificationEmail = async (email, verifyLink, role) => {
+    // Log mock link always for safety
+    console.log(`\n📧 [MOCK EMAIL] Verification Link for ${role} ${email}: ${verifyLink}\n`);
+
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
+        return;
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_APP_PASSWORD.replace(/\s/g, '') // CRITICAL: Gmail app passwords must not have spaces
+            }
+        });
+
+        const mailOptions = {
+            from: `"Smart Faculty Directory" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `Verify your ${role} account - Smart Faculty`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h2 style="color: #7c2ae8; text-align: center;">Welcome to Smart Faculty!</h2>
+                    <p>Hello,</p>
+                    <p>Thank you for joining the Smart Faculty Directory as a <b>${role}</b>. Please verify your account by clicking the button below:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${verifyLink}" style="background-color: #7c2ae8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Verify My Account</a>
+                    </div>
+                    <p style="font-size: 12px; color: #777;">If the button doesn't work, copy and paste this link into your browser:</p>
+                    <p style="font-size: 12px; color: #777; word-break: break-all;">${verifyLink}</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin-top: 30px;">
+                    <p style="font-size: 10px; color: #aaa; text-align: center;">This is an automated message. Please do not reply.</p>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Email successfully sent to ${email}: ${info.response}`);
+    } catch (error) {
+        console.error(`❌ NODEMAILER ERROR for ${email}:`, error.message);
+        console.log("Check if your EMAIL_USER is correct and EMAIL_APP_PASSWORD is a valid 16-character code.");
+    }
+};
 
 let globalFacultyCache = [];
 
@@ -409,37 +456,8 @@ app.post('/api/signup', async (req, res) => {
 
         const verifyLink = `http://${req.headers.host}/api/verify/${verificationToken}`;
 
-        // --- Email Logic ---
-        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-            const nodemailer = require('nodemailer');
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_APP_PASSWORD
-                }
-            });
-
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: email,
-                subject: 'Smart Faculty Directory - Verify your Email',
-                html: `
-                    <h2>Welcome to Smart Faculty Directory!</h2>
-                    <p>Please click the link below to verify your account:</p>
-                    <a href="${verifyLink}" style="padding: 10px 20px; background-color: #7c2ae8; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
-                    <p>Or copy this link: ${verifyLink}</p>
-                `
-            };
-
-            await transporter.sendMail(mailOptions).then(info => {
-                console.log('Email sent: ' + info.response);
-            }).catch(error => {
-                console.error('Error sending email:', error);
-            });
-        }
-
-        console.log(`\n📧 [MOCK EMAIL] Verification Link for ${email}: ${verifyLink}\n`);
+        // Send Email
+        await sendVerificationEmail(email, verifyLink, 'faculty');
 
         initializeData();
         res.json({ success: true, message: 'Account created. Please check your email to verify.', facultyId });
@@ -474,32 +492,8 @@ app.post('/api/student/signup', async (req, res) => {
 
         const verifyLink = `http://${req.headers.host}/api/verify/${verificationToken}`;
 
-        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-            const nodemailer = require('nodemailer');
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_APP_PASSWORD
-                }
-            });
-
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: email,
-                subject: 'Smart Faculty Directory - Verify Student Email',
-                html: `
-                    <h2>Welcome to Smart Faculty Directory!</h2>
-                    <p>Please click the link below to verify your student account:</p>
-                    <a href="${verifyLink}" style="padding: 10px 20px; background-color: #7c2ae8; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
-                    <p>Or copy this link: ${verifyLink}</p>
-                `
-            };
-
-            transporter.sendMail(mailOptions).catch(console.error);
-        }
-
-        console.log(`\n📧 [MOCK EMAIL] Verification Link for Student ${email}: ${verifyLink}\n`);
+        // Send Email
+        await sendVerificationEmail(email, verifyLink, 'student');
 
         res.json({ success: true, message: 'Student account created. Please check your email to verify.' });
     } catch (err) {
@@ -538,13 +532,18 @@ app.get('/api/verify/:token', async (req, res) => {
 
 // Auth: Login
 app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     try {
         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
         const user = result.rows[0];
         if (user.password_hash !== password) return res.status(401).json({ error: 'Invalid credentials' });
+
+        // Check if role matches
+        if (role && user.role !== role) {
+            return res.status(403).json({ error: `This account is registered as a ${user.role}. Please log in through the correct tab.` });
+        }
 
         if (!user.is_verified) {
             return res.status(403).json({ error: 'Please verify your email address before logging in.' });
