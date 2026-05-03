@@ -170,27 +170,27 @@ const FacultyProfile = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Your Name</label>
-                                <input type="text" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.student_name} onChange={e => setMeetingForm({...meetingForm, student_name: e.target.value})} />
+                                <input type="text" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.student_name} onChange={e => setMeetingForm({...meetingForm, student_name: e.target.value})} />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason / Title</label>
-                                <input type="text" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.title} onChange={e => setMeetingForm({...meetingForm, title: e.target.value})} placeholder="e.g. Project Review" />
+                                <input type="text" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.title} onChange={e => setMeetingForm({...meetingForm, title: e.target.value})} placeholder="e.g. Project Review" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Day</label>
-                                <select className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.day_of_week} onChange={e => setMeetingForm({...meetingForm, day_of_week: e.target.value})}>
+                                <select className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.day_of_week} onChange={e => setMeetingForm({...meetingForm, day_of_week: e.target.value})}>
                                     {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d}>{d}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Time</label>
-                                <input type="time" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.start_time} onChange={e => setMeetingForm({...meetingForm, start_time: e.target.value})} />
+                                <input type="time" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.start_time} onChange={e => setMeetingForm({...meetingForm, start_time: e.target.value})} />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Time</label>
-                                <input type="time" required className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.end_time} onChange={e => setMeetingForm({...meetingForm, end_time: e.target.value})} />
+                                <input type="time" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.end_time} onChange={e => setMeetingForm({...meetingForm, end_time: e.target.value})} />
                             </div>
                         </div>
                         <button type="submit" disabled={requestStatus?.loading} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md transition">
