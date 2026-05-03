@@ -671,26 +671,37 @@ app.post('/api/faculty/:id/smart-meetings', async (req, res) => {
         );
         const requests = reqsResult.rows.map(r => ({ ...r, start: r.start_time.slice(0,5), end: r.end_time.slice(0,5) }));
 
-        // Use the Greedy Algorithm to find optimal non-overlapping meetings
-        const optimalMeetings = IntervalScheduler.optimizeMeetings(requests, existingBlocks);
+        // Use the Flexible Greedy Algorithm to find optimal meetings or adjust timings
+        const { accepted, adjusted, rejected } = IntervalScheduler.optimizeMeetings(requests, existingBlocks);
         
         // Now update DB
-        const acceptedIds = optimalMeetings.map(m => m.id);
-        const rejectedIds = requests.filter(r => !acceptedIds.includes(r.id)).map(r => r.id);
+        const acceptedIds = accepted.map(m => m.id);
+        const rejectedIds = rejected.map(m => m.id);
 
+        // Update strictly accepted
         if (acceptedIds.length > 0) {
             await pool.query("UPDATE meeting_requests SET status = 'Approved' WHERE id = ANY($1)", [acceptedIds]);
         }
+        
+        // Update rejected
         if (rejectedIds.length > 0) {
             await pool.query("UPDATE meeting_requests SET status = 'Rejected' WHERE id = ANY($1)", [rejectedIds]);
+        }
+
+        // Update adjusted (requires updating start_time and end_time individually)
+        for (const req of adjusted) {
+            await pool.query(
+                "UPDATE meeting_requests SET status = 'Approved', start_time = $1, end_time = $2 WHERE id = $3",
+                [req.start, req.end, req.id]
+            );
         }
 
         res.json({
             facultyId: id,
             day: day_of_week,
             totalRequests: requests.length,
-            acceptedMeetings: optimalMeetings.length,
-            meetings: optimalMeetings
+            acceptedMeetings: accepted.length + adjusted.length,
+            meetings: { accepted, adjusted, rejected }
         });
 
     } catch (err) {

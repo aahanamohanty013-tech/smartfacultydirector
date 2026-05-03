@@ -139,14 +139,24 @@ const Dashboard = () => {
         const daysWithPending = [...new Set(pendingReqs.map(r => r.day_of_week))];
         
         try {
+            let totalAccepted = 0;
+            let totalAdjusted = 0;
+            let totalRejected = 0;
+
             for (const day of daysWithPending) {
-                await fetch(`${API_URL}/api/faculty/${faculty.id}/smart-meetings`, {
+                const res = await fetch(`${API_URL}/api/faculty/${faculty.id}/smart-meetings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ day_of_week: day })
                 });
+                const data = await res.json();
+                if (data.meetings) {
+                    totalAccepted += data.meetings.accepted?.length || 0;
+                    totalAdjusted += data.meetings.adjusted?.length || 0;
+                    totalRejected += data.meetings.rejected?.length || 0;
+                }
             }
-            alert("Auto-Scheduling Complete! Optimal meetings approved.");
+            alert(`Auto-Scheduling Complete!\nPerfect Fit: ${totalAccepted}\nAdjusted Times: ${totalAdjusted}\nRejected: ${totalRejected}`);
             fetchFacultyData(faculty.id); // Refresh
         } catch (err) {
             alert("Failed to run scheduler");
