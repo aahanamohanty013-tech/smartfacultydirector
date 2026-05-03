@@ -49,6 +49,20 @@ const FacultyProfile = () => {
         }
     };
 
+    const handleDeleteRequest = async (requestId) => {
+        if (!window.confirm("Are you sure you want to delete this request?")) return;
+        try {
+            const res = await fetch(`${API_URL}/api/meeting-requests/${requestId}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchMeetingRequests();
+            } else {
+                alert("Failed to delete request");
+            }
+        } catch (err) {
+            alert("Network error");
+        }
+    };
+
     useEffect(() => {
         fetch(`${API_URL}/api/faculty/${id}`)
             .then(res => res.json())
@@ -225,7 +239,12 @@ const FacultyProfile = () => {
                             {meetingRequestsList.map(req => (
                                 <div key={req.id} className={`p-4 rounded-xl border ${req.status === 'Approved' ? 'bg-green-50 border-green-200' : req.status === 'Rejected' ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="flex justify-between items-start mb-2">
-                                        <div className="font-bold text-gray-900">{req.student_name}</div>
+                                        <div className="flex items-center">
+                                            <div className="font-bold text-gray-900">{req.student_name}</div>
+                                            <button onClick={() => handleDeleteRequest(req.id)} className="ml-2 text-red-500 opacity-50 hover:opacity-100 transition" title="Delete Request">
+                                                ❌
+                                            </button>
+                                        </div>
                                         <span className={`text-xs font-bold px-2 py-1 rounded ${req.status === 'Approved' ? 'bg-green-100 text-green-700' : req.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'}`}>
                                             {req.status}
                                         </span>

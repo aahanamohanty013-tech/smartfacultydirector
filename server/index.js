@@ -297,6 +297,18 @@ app.post('/api/meeting-requests', async (req, res) => {
     }
 });
 
+// Delete Meeting Request
+app.delete('/api/meeting-requests/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM meeting_requests WHERE id = $1', [id]);
+        res.json({ message: 'Request deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete request' });
+    }
+});
+
 // Faculty: Get Meeting Requests
 app.get('/api/faculty/:id/meeting-requests', async (req, res) => {
     const { id } = req.params;
