@@ -17,6 +17,16 @@ const FacultyProfile = () => {
         end_time: '09:30'
     });
     const [requestStatus, setRequestStatus] = useState(null);
+    const [meetingRequestsList, setMeetingRequestsList] = useState([]);
+
+    const fetchMeetingRequests = () => {
+        fetch(`${API_URL}/api/faculty/${id}/meeting-requests`)
+            .then(res => res.json())
+            .then(data => {
+                setMeetingRequestsList(data);
+            })
+            .catch(err => console.error(err));
+    };
 
     const submitMeetingRequest = async (e) => {
         e.preventDefault();
@@ -30,6 +40,7 @@ const FacultyProfile = () => {
             if (res.ok) {
                 setRequestStatus({ loading: false, message: 'Request submitted! The faculty will auto-schedule it.', error: null });
                 setMeetingForm({ ...meetingForm, title: '', start_time: '', end_time: '' }); // Reset some fields
+                fetchMeetingRequests();
             } else {
                 setRequestStatus({ loading: false, message: null, error: 'Failed to submit.' });
             }
@@ -49,6 +60,8 @@ const FacultyProfile = () => {
                 console.error(err);
                 setLoading(false);
             });
+            
+        fetchMeetingRequests();
     }, [id]);
 
     if (loading) return <div className="p-10 text-center text-gray-500 text-lg animate-pulse">Loading profile...</div>;
@@ -201,6 +214,31 @@ const FacultyProfile = () => {
                         {requestStatus?.error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm font-bold text-center border border-red-200 mt-2">{requestStatus.error}</div>}
                     </form>
                 </div>
+
+                {/* Meeting Requests Status */}
+                {meetingRequestsList.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden p-6 md:p-8">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <span className="mr-2">📋</span> Meeting Requests Status
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {meetingRequestsList.map(req => (
+                                <div key={req.id} className={`p-4 rounded-xl border ${req.status === 'Approved' ? 'bg-green-50 border-green-200' : req.status === 'Rejected' ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="font-bold text-gray-900">{req.student_name}</div>
+                                        <span className={`text-xs font-bold px-2 py-1 rounded ${req.status === 'Approved' ? 'bg-green-100 text-green-700' : req.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'}`}>
+                                            {req.status}
+                                        </span>
+                                    </div>
+                                    <div className="text-sm text-gray-700 mb-2">{req.title}</div>
+                                    <div className="text-xs text-gray-500 font-mono">
+                                        {req.day_of_week} • {req.start_time.slice(0,5)} - {req.end_time.slice(0,5)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Timetable */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
