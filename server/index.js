@@ -640,6 +640,18 @@ app.post('/api/faculty/:id/smart-meetings', async (req, res) => {
             end: t.end_time.slice(0, 5)
         }));
 
+        // Fetch ALREADY APPROVED meeting requests and add them to existingBlocks to prevent double-booking
+        const approvedReqsResult = await pool.query(
+            "SELECT start_time, end_time FROM meeting_requests WHERE faculty_id = $1 AND day_of_week = $2 AND status = 'Approved'",
+            [id, day_of_week]
+        );
+        approvedReqsResult.rows.forEach(r => {
+            existingBlocks.push({
+                start: r.start_time.slice(0, 5),
+                end: r.end_time.slice(0, 5)
+            });
+        });
+
         // Fetch all 'Pending' requests from DB
         const reqsResult = await pool.query(
             "SELECT * FROM meeting_requests WHERE faculty_id = $1 AND day_of_week = $2 AND status = 'Pending'",
