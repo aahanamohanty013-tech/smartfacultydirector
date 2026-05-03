@@ -28,7 +28,12 @@ const Login = () => {
 
             localStorage.setItem('user', JSON.stringify(data)); // Save user
             alert(`Welcome back, ${data.username}!`);
-            navigate('/dashboard'); // <--- Redirect to Dashboard
+            
+            if (data.role === 'student') {
+                navigate('/'); // Students go home
+            } else {
+                navigate('/dashboard'); // Faculty go to dashboard
+            }
         } catch (err) {
             console.error('Login Error:', err);
             setError(err.message);

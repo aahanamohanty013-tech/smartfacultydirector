@@ -78,6 +78,19 @@ const initializeData = async () => {
                         status VARCHAR(50) DEFAULT 'Pending'
                     );
                 END IF;
+
+                -- Add role to users if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
+                    ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'faculty';
+                END IF;
+
+                -- Make faculty_id nullable in users
+                ALTER TABLE users ALTER COLUMN faculty_id DROP NOT NULL;
+
+                -- Add student_id to meeting_requests
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='meeting_requests' AND column_name='student_id') THEN
+                    ALTER TABLE meeting_requests ADD COLUMN student_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+                END IF;
             END
             $$;
         `);
@@ -284,11 +297,11 @@ app.get('/api/faculty/:id', async (req, res) => {
 
 // Student: Submit Meeting Request
 app.post('/api/meeting-requests', async (req, res) => {
-    const { faculty_id, student_name, title, day_of_week, start_time, end_time } = req.body;
+    const { faculty_id, student_name, title, day_of_week, start_time, end_time, student_id } = req.body;
     try {
         const insertRes = await pool.query(
-            'INSERT INTO meeting_requests (faculty_id, student_name, title, day_of_week, start_time, end_time) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [faculty_id, student_name, title, day_of_week, start_time, end_time]
+            'INSERT INTO meeting_requests (faculty_id, student_name, title, day_of_week, start_time, end_time, student_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [faculty_id, student_name, title, day_of_week, start_time, end_time, student_id || null]
         );
         res.json(insertRes.rows[0]);
     } catch (err) {
@@ -309,11 +322,17 @@ app.delete('/api/meeting-requests/:id', async (req, res) => {
     }
 });
 
-// Faculty: Get Meeting Requests
+// Faculty/Student: Get Meeting Requests
 app.get('/api/faculty/:id/meeting-requests', async (req, res) => {
     const { id } = req.params;
+    const { student_id } = req.query;
     try {
-        const result = await pool.query('SELECT * FROM meeting_requests WHERE faculty_id = $1 ORDER BY day_of_week, start_time', [id]);
+        let result;
+        if (student_id) {
+            result = await pool.query('SELECT * FROM meeting_requests WHERE faculty_id = $1 AND student_id = $2 ORDER BY day_of_week, start_time', [id, student_id]);
+        } else {
+            result = await pool.query('SELECT * FROM meeting_requests WHERE faculty_id = $1 ORDER BY day_of_week, start_time', [id]);
+        }
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -433,6 +452,62 @@ app.post('/api/signup', async (req, res) => {
     }
 });
 
+// Auth: Student Signup
+app.post('/api/student/signup', async (req, res) => {
+    const { name, email, password } = req.body;
+    try {
+        if (!email.endsWith('@rvce.edu.in')) {
+            return res.status(400).json({ error: 'invalid email id only for rvce students' });
+        }
+
+        const emailCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (emailCheck.rows.length > 0) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+
+        await pool.query(
+            'INSERT INTO users (username, password_hash, email, is_verified, verification_token, role) VALUES ($1, $2, $3, $4, $5, $6)',
+            [name, password, email, false, verificationToken, 'student']
+        );
+
+        const verifyLink = `http://${req.headers.host}/api/verify/${verificationToken}`;
+
+        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+            const nodemailer = require('nodemailer');
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_APP_PASSWORD
+                }
+            });
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'Smart Faculty Directory - Verify Student Email',
+                html: `
+                    <h2>Welcome to Smart Faculty Directory!</h2>
+                    <p>Please click the link below to verify your student account:</p>
+                    <a href="${verifyLink}" style="padding: 10px 20px; background-color: #7c2ae8; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
+                    <p>Or copy this link: ${verifyLink}</p>
+                `
+            };
+
+            transporter.sendMail(mailOptions).catch(console.error);
+        }
+
+        console.log(`\n📧 [MOCK EMAIL] Verification Link for Student ${email}: ${verifyLink}\n`);
+
+        res.json({ success: true, message: 'Student account created. Please check your email to verify.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Student signup failed.' });
+    }
+});
+
 // Auth: Verify Email
 app.get('/api/verify/:token', async (req, res) => {
     const { token } = req.params;
@@ -475,7 +550,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(403).json({ error: 'Please verify your email address before logging in.' });
         }
 
-        res.json({ success: true, username: user.username, facultyId: user.faculty_id });
+        res.json({ success: true, id: user.id, username: user.username, facultyId: user.faculty_id, role: user.role });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });

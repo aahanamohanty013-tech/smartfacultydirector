@@ -9,18 +9,25 @@ const FacultyProfile = () => {
     const [loading, setLoading] = useState(true);
 
     // Meeting Request State
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const isStudent = user && user.role === 'student';
+
     const [meetingForm, setMeetingForm] = useState({
-        student_name: '',
+        student_name: isStudent ? user.username : '',
         title: '',
         day_of_week: 'Monday',
-        start_time: '09:00',
-        end_time: '09:30'
+        start_time: '',
+        end_time: ''
     });
     const [requestStatus, setRequestStatus] = useState(null);
     const [meetingRequestsList, setMeetingRequestsList] = useState([]);
 
     const fetchMeetingRequests = () => {
-        fetch(`${API_URL}/api/faculty/${id}/meeting-requests`)
+        if (!isStudent) return; // Only students should fetch their own requests on the public profile
+
+        let url = `${API_URL}/api/faculty/${id}/meeting-requests?student_id=${user.id}`;
+        fetch(url)
             .then(res => res.json())
             .then(data => {
                 setMeetingRequestsList(data);
@@ -30,12 +37,14 @@ const FacultyProfile = () => {
 
     const submitMeetingRequest = async (e) => {
         e.preventDefault();
+        if (!isStudent) return; // Safeguard
+
         setRequestStatus({ loading: true, message: null, error: null });
         try {
             const res = await fetch(`${API_URL}/api/meeting-requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...meetingForm, faculty_id: id })
+                body: JSON.stringify({ ...meetingForm, faculty_id: id, student_id: user.id })
             });
             if (res.ok) {
                 setRequestStatus({ loading: false, message: 'Request submitted! The faculty will auto-schedule it.', error: null });
@@ -193,40 +202,49 @@ const FacultyProfile = () => {
                         </p>
                     </div>
 
-                    <form onSubmit={submitMeetingRequest} className="bg-white p-6 rounded-xl shadow-inner border border-purple-50 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Your Name</label>
-                                <input type="text" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.student_name} onChange={e => setMeetingForm({...meetingForm, student_name: e.target.value})} />
+                    {isStudent ? (
+                        <form onSubmit={submitMeetingRequest} className="bg-white p-6 rounded-xl shadow-inner border border-purple-50 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Your Name</label>
+                                    <input type="text" required readOnly className="w-full bg-gray-100 text-gray-600 border-gray-300 rounded-lg shadow-sm p-2 border cursor-not-allowed" value={meetingForm.student_name} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason / Title</label>
+                                    <input type="text" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.title} onChange={e => setMeetingForm({...meetingForm, title: e.target.value})} placeholder="e.g. Project Review" />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason / Title</label>
-                                <input type="text" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.title} onChange={e => setMeetingForm({...meetingForm, title: e.target.value})} placeholder="e.g. Project Review" />
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Day</label>
+                                    <select className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.day_of_week} onChange={e => setMeetingForm({...meetingForm, day_of_week: e.target.value})}>
+                                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Time</label>
+                                    <input type="time" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.start_time} onChange={e => setMeetingForm({...meetingForm, start_time: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Time</label>
+                                    <input type="time" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.end_time} onChange={e => setMeetingForm({...meetingForm, end_time: e.target.value})} />
+                                </div>
                             </div>
+                            <button type="submit" disabled={requestStatus?.loading} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md transition">
+                                {requestStatus?.loading ? 'Submitting...' : 'Submit Request'}
+                            </button>
+                            
+                            {requestStatus?.message && <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm font-bold text-center border border-green-200 mt-2">{requestStatus.message}</div>}
+                            {requestStatus?.error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm font-bold text-center border border-red-200 mt-2">{requestStatus.error}</div>}
+                        </form>
+                    ) : (
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-purple-50 text-center">
+                            <span className="text-4xl block mb-2">🔒</span>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Student Login Required</h3>
+                            <p className="text-gray-600 mb-4">Please log in as a student using your @rvce.edu.in email to request a meeting and view your status.</p>
+                            <Link to="/login" className="inline-block bg-purple-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-purple-700 transition shadow-md">Log In Now</Link>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Day</label>
-                                <select className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.day_of_week} onChange={e => setMeetingForm({...meetingForm, day_of_week: e.target.value})}>
-                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d}>{d}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Time</label>
-                                <input type="time" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.start_time} onChange={e => setMeetingForm({...meetingForm, start_time: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Time</label>
-                                <input type="time" required className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 p-2 border" value={meetingForm.end_time} onChange={e => setMeetingForm({...meetingForm, end_time: e.target.value})} />
-                            </div>
-                        </div>
-                        <button type="submit" disabled={requestStatus?.loading} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md transition">
-                            {requestStatus?.loading ? 'Submitting...' : 'Submit Request'}
-                        </button>
-                        
-                        {requestStatus?.message && <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm font-bold text-center border border-green-200 mt-2">{requestStatus.message}</div>}
-                        {requestStatus?.error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm font-bold text-center border border-red-200 mt-2">{requestStatus.error}</div>}
-                    </form>
+                    )}
                 </div>
 
                 {/* Meeting Requests Status */}

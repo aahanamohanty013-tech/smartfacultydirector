@@ -4,6 +4,7 @@ import { API_URL } from './config';
 
 const Signup = () => {
     const navigate = useNavigate();
+    const [role, setRole] = useState('faculty'); // 'faculty' or 'student'
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -24,8 +25,10 @@ const Signup = () => {
         setLoading(true);
         setError('');
 
+        const endpoint = role === 'student' ? `${API_URL}/api/student/signup` : `${API_URL}/api/signup`;
+
         try {
-            const response = await fetch(`${API_URL}/api/signup`, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -53,9 +56,15 @@ const Signup = () => {
     return (
         <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 animate-fade-in-up">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Faculty Sign Up</h1>
+                <div className="text-center mb-6">
+                    <h1 className="text-3xl font-bold text-gray-900">Sign Up</h1>
                     <p className="text-gray-500 mt-2">Join the directory</p>
+                </div>
+
+                {/* Role Toggle */}
+                <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+                    <button type="button" onClick={() => setRole('student')} className={`flex-1 py-2 rounded-md text-sm font-bold transition ${role === 'student' ? 'bg-white shadow text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}>Student</button>
+                    <button type="button" onClick={() => setRole('faculty')} className={`flex-1 py-2 rounded-md text-sm font-bold transition ${role === 'faculty' ? 'bg-white shadow text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}>Faculty</button>
                 </div>
 
                 {error && (
@@ -67,20 +76,27 @@ const Signup = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" name="name" required placeholder="e.g. Dr. Aahan Mohanty" className={inputClass} value={formData.name} onChange={handleChange} />
+                        <input type="text" name="name" required placeholder={role === 'faculty' ? "e.g. Dr. Aahan Mohanty" : "e.g. John Doe"} className={inputClass} value={formData.name} onChange={handleChange} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                        <input type="email" name="email" required placeholder="e.g. name@university.edu" className={inputClass} value={formData.email} onChange={handleChange} />
+                        <input type="email" name="email" required placeholder={role === 'student' ? "name@rvce.edu.in" : "name@university.edu"} className={inputClass} value={formData.email} onChange={handleChange} />
+                        {role === 'student' && <p className="text-xs text-gray-500 mt-1">Must be an @rvce.edu.in address</p>}
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Alias (Shortform)</label>
-                        <input type="text" name="shortform" required placeholder="e.g. AM" className={inputClass} value={formData.shortform} onChange={handleChange} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
-                        <input type="text" name="specialization" placeholder="e.g. AI, Machine Learning" className={inputClass} value={formData.specialization} onChange={handleChange} />
-                    </div>
+
+                    {role === 'faculty' && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Alias (Shortform)</label>
+                                <input type="text" name="shortform" required placeholder="e.g. AM" className={inputClass} value={formData.shortform} onChange={handleChange} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                                <input type="text" name="specialization" placeholder="e.g. AI, Machine Learning" className={inputClass} value={formData.specialization} onChange={handleChange} />
+                            </div>
+                        </>
+                    )}
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" name="password" required placeholder="••••••••" className={inputClass} value={formData.password} onChange={handleChange} />
