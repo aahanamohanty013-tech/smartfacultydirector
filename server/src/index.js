@@ -298,6 +298,24 @@ app.post('/api/signup', async (req, res) => {
     }
 
     try {
+        // If user already exists but is unverified, regenerate verification code and update password
+        const existingRes = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (existingRes.rows.length > 0) {
+            const existingUser = existingRes.rows[0];
+            if (existingUser.is_verified) {
+                return res.status(400).json({ error: 'Email is already registered.' });
+            } else {
+                const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+                console.log(`[EMAIL VERIFICATION] Faculty code regenerated for ${email}: ${verificationCode}`);
+                
+                await pool.query(
+                    'UPDATE users SET username = $1, password_hash = $2, verification_code = $3 WHERE id = $4',
+                    [name, password, verificationCode, existingUser.id]
+                );
+                return res.json({ success: true, message: 'Verification code resent.', facultyId: existingUser.faculty_id, mockVerificationCode: verificationCode });
+            }
+        }
+
         const facultyRes = await pool.query(
             'INSERT INTO faculty (name, department, room_number, floor_number, aliases, specialization) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [name, 'Computer Science', 'TBD', 'TBD', [shortform], specialization || '']
@@ -367,6 +385,24 @@ app.post('/api/student/signup', async (req, res) => {
     }
 
     try {
+        // If student already exists but is unverified, regenerate verification code and update password
+        const existingRes = await pool.query('SELECT * FROM students WHERE email = $1', [email]);
+        if (existingRes.rows.length > 0) {
+            const existingStudent = existingRes.rows[0];
+            if (existingStudent.is_verified) {
+                return res.status(400).json({ error: 'Email is already registered.' });
+            } else {
+                const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+                console.log(`[EMAIL VERIFICATION] Student code regenerated for ${email}: ${verificationCode}`);
+                
+                const updateRes = await pool.query(
+                    'UPDATE students SET name = $1, password_hash = $2, verification_code = $3 WHERE id = $4 RETURNING id, name, email',
+                    [name, password, verificationCode, existingStudent.id]
+                );
+                return res.json({ success: true, student: updateRes.rows[0], mockVerificationCode: verificationCode, message: 'Verification code resent.' });
+            }
+        }
+
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         console.log(`[EMAIL VERIFICATION] Student code for ${email}: ${verificationCode}`);
 
