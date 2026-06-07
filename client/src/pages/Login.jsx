@@ -41,7 +41,17 @@ const Login = () => {
                     navigate('/student-dashboard');
                 }
             } else {
-                alert(data.error || 'Login failed');
+                if (res.status === 403 && data.email && data.role) {
+                    alert(data.error || 'Please verify your email first.');
+                    navigate('/verify', { 
+                        state: { 
+                            email: data.email, 
+                            role: data.role 
+                        } 
+                    });
+                } else {
+                    alert(data.error || 'Login failed');
+                }
             }
         } catch (err) {
             console.error(err);

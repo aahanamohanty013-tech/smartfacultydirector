@@ -21,7 +21,9 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    faculty_id INTEGER REFERENCES faculty(id) ON DELETE SET NULL
+    faculty_id INTEGER REFERENCES faculty(id) ON DELETE SET NULL,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_code VARCHAR(10)
 );
 
 -- Timetable entries
@@ -42,7 +44,9 @@ CREATE TABLE students (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL
+    password_hash VARCHAR(255) NOT NULL,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_code VARCHAR(10)
 );
 
 -- Appointments table

@@ -291,13 +291,16 @@ app.post('/api/signup', async (req, res) => {
         );
         const facultyId = facultyRes.rows[0].id;
 
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        console.log(`[EMAIL VERIFICATION] Faculty code for ${email}: ${verificationCode}`);
+
         await pool.query(
-            'INSERT INTO users (username, email, password_hash, faculty_id) VALUES ($1, $2, $3, $4)',
-            [name, email, password, facultyId]
+            'INSERT INTO users (username, email, password_hash, faculty_id, is_verified, verification_code) VALUES ($1, $2, $3, $4, false, $5)',
+            [name, email, password, facultyId, verificationCode]
         );
 
         initializeTrie();
-        res.json({ success: true, message: 'Account created', facultyId });
+        res.json({ success: true, message: 'Account created. Verification code sent.', facultyId, mockVerificationCode: verificationCode });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Signup failed. Email or Shortform might be taken.' });
@@ -324,6 +327,11 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Verification Check
+        if (!user.is_verified) {
+            return res.status(403).json({ error: 'Please verify your email address first.', email, role: 'faculty' });
+        }
+
         res.json({ success: true, username: user.username, email: user.email, facultyId: user.faculty_id });
     } catch (err) {
         console.error(err);
@@ -346,11 +354,14 @@ app.post('/api/student/signup', async (req, res) => {
     }
 
     try {
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        console.log(`[EMAIL VERIFICATION] Student code for ${email}: ${verificationCode}`);
+
         const result = await pool.query(
-            'INSERT INTO students (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email',
-            [name, email, password]
+            'INSERT INTO students (name, email, password_hash, is_verified, verification_code) VALUES ($1, $2, $3, false, $4) RETURNING id, name, email',
+            [name, email, password, verificationCode]
         );
-        res.json({ success: true, student: result.rows[0] });
+        res.json({ success: true, student: result.rows[0], mockVerificationCode: verificationCode });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Signup failed. Email might already be registered.' });
@@ -376,10 +387,52 @@ app.post('/api/student/login', async (req, res) => {
             return res.status(400).json({ error: 'Login blocked. Student account is expired/graduated.' });
         }
 
+        // Verification Check
+        if (!student.is_verified) {
+            return res.status(403).json({ error: 'Please verify your email address first.', email, role: 'student' });
+        }
+
         res.json({ success: true, id: student.id, name: student.name, email: student.email });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// Email Verification Verify endpoint
+app.post('/api/verify', async (req, res) => {
+    const { email, role, code } = req.body;
+    if (!email || !role || !code) {
+        return res.status(400).json({ error: 'Email, role, and verification code are required.' });
+    }
+
+    try {
+        if (role === 'faculty') {
+            const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'User not found.' });
+            }
+            const user = result.rows[0];
+            if (user.verification_code !== code) {
+                return res.status(400).json({ error: 'Invalid verification code.' });
+            }
+            await pool.query('UPDATE users SET is_verified = true, verification_code = null WHERE id = $1', [user.id]);
+            res.json({ success: true, message: 'Email verified successfully.' });
+        } else {
+            const result = await pool.query('SELECT * FROM students WHERE email = $1', [email]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Student not found.' });
+            }
+            const student = result.rows[0];
+            if (student.verification_code !== code) {
+                return res.status(400).json({ error: 'Invalid verification code.' });
+            }
+            await pool.query('UPDATE students SET is_verified = true, verification_code = null WHERE id = $1', [student.id]);
+            res.json({ success: true, message: 'Email verified successfully.' });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Verification failed.' });
     }
 });
 

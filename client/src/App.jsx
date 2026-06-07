@@ -5,6 +5,7 @@ import FacultyProfile from './pages/FacultyProfile';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Verify from './pages/Verify';
 import Dashboard from './pages/Dashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import CampusMap from './pages/CampusMap';
@@ -22,6 +23,7 @@ function App() {
                     <Route path="/map" element={<CampusMap />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
+                    <Route path="/verify" element={<Verify />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/student-dashboard" element={<StudentDashboard />} />
                     <Route path="/faculty/:id" element={<FacultyProfile />} />

@@ -53,8 +53,15 @@ const Signup = () => {
             });
             const data = await res.json();
             if (res.ok) {
-                alert('Registration Successful! Please Log In.');
-                navigate('/login');
+                alert('Registration Successful! Please verify your email.');
+                const emailVal = role === 'faculty' ? facultyData.email : studentData.email;
+                navigate('/verify', { 
+                    state: { 
+                        email: emailVal, 
+                        role: role, 
+                        mockCode: data.mockVerificationCode 
+                    } 
+                });
             } else {
                 alert(data.error || 'Registration failed');
             }
