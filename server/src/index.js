@@ -29,6 +29,19 @@ const pool = new Pool({
 // Initialize Trie with data from DB
 const initializeTrie = async () => {
     try {
+        console.log('Running automatic database migrations...');
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+            ALTER TABLE students ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+            ALTER TABLE students ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+        `);
+        console.log('Database migrations applied successfully.');
+    } catch (err) {
+        console.error('Database migrations failed:', err.message);
+    }
+
+    try {
         console.log('Initializing Trie...');
         trie.clear();
         const res = await pool.query('SELECT * FROM faculty');
