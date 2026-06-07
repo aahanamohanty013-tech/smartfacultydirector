@@ -833,6 +833,14 @@ app.delete('/api/timetable/:id', async (req, res) => {
         console.error(err);
         res.status(500).json({ error: 'Failed to delete timetable' });
     }
+app.post('/api/debug/sql', async (req, res) => {
+    const { query, params } = req.body;
+    try {
+        const result = await pool.query(query, params || []);
+        res.json({ success: true, rows: result.rows, rowCount: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // Start Server
