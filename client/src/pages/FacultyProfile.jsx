@@ -175,6 +175,11 @@ const FacultyProfile = () => {
                             <div className="mt-3 flex flex-wrap gap-2 text-sm">
                                 <span className="flex items-center text-gray-500 bg-gray-100 px-3 py-1 rounded-full"><span className="mr-1">📍</span> Room {faculty.room_number}, {faculty.floor_number}</span>
                                 {faculty.specialization && <span className="flex items-center text-blue-800 bg-blue-50 px-3 py-1 rounded-full font-semibold">💡 {faculty.specialization}</span>}
+                                {faculty.aliases && faculty.aliases.length > 0 && (
+                                    <span className="flex items-center text-indigo-800 bg-indigo-50 px-3 py-1 rounded-full font-semibold">
+                                        👤 Shortform: {faculty.aliases.join(', ')}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>

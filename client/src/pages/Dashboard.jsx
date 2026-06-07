@@ -280,9 +280,15 @@ const Dashboard = () => {
                                         <div className="font-semibold">{faculty.department}</div>
                                     </div>
                                 </div>
-                                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                                    <div className="text-xs text-white/50 uppercase">Specialization</div>
-                                    <div className="font-semibold">{faculty.specialization || "Not set"}</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                                        <div className="text-xs text-white/50 uppercase">Specialization</div>
+                                        <div className="font-semibold">{faculty.specialization || "Not set"}</div>
+                                    </div>
+                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                                        <div className="text-xs text-white/50 uppercase">Shortform / Alias</div>
+                                        <div className="font-semibold">{faculty.aliases && faculty.aliases.length > 0 ? faculty.aliases.join(', ') : "Not set"}</div>
+                                    </div>
                                 </div>
                                 <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                                     <div className="text-xs text-white/50 uppercase">Biography</div>
