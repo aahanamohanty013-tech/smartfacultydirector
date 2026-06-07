@@ -1,14 +1,5 @@
 -- Database Schema for Smart Faculty Directory
 
--- Users table for Admin authentication (Simple for now)
-DROP TABLE IF EXISTS users CASCADE;
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL, -- In real app, use bcrypt
-    faculty_id INTEGER REFERENCES faculty(id) ON DELETE SET NULL
-);
-
 -- Faculty details
 DROP TABLE IF EXISTS faculty CASCADE;
 CREATE TABLE faculty (
@@ -18,7 +9,18 @@ CREATE TABLE faculty (
     room_number VARCHAR(20),
     floor_number VARCHAR(20),
     aliases TEXT[], -- Array of strings for nicknames/initials
-    specialization VARCHAR(255)
+    specialization VARCHAR(255),
+    research_interests TEXT,
+    bio TEXT
+);
+
+-- Users table for Admin/Faculty authentication
+DROP TABLE IF EXISTS users CASCADE;
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    faculty_id INTEGER REFERENCES faculty(id) ON DELETE SET NULL
 );
 
 -- Timetable entries
@@ -33,23 +35,51 @@ CREATE TABLE timetables (
     location VARCHAR(50) -- Optional, if class is in a different room
 );
 
--- Seed Data: Faculty
-INSERT INTO faculty (name, department, room_number, floor_number, aliases) VALUES
-('Dr. Prashant Kumar', 'Computer Science', 'CS-101', '1st Floor', ARRAY['Prash', 'PK']),
-('Dr. Anjali Sharma', 'Mathematics', 'MATH-202', '2nd Floor', ARRAY['Anjali', 'AS']),
-('Dr. Vikram Singh', 'Physics', 'PHY-305', '3rd Floor', ARRAY['Vikram', 'VS']);
+-- Students table
+DROP TABLE IF EXISTS students CASCADE;
+CREATE TABLE students (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL
+);
 
--- Seed Data: Timetables (Generic data for testing)
--- Assuming today might be Monday, Tuesday, etc. Adding coverage.
-INSERT INTO timetables (faculty_id, day_of_week, start_time, end_time, course_name) VALUES
--- Prashant (CS)
-(1, 'Monday', '09:00', '10:00', 'CS101 Intro'),
-(1, 'Monday', '11:00', '12:00', 'CS202 Algorithms'),
-(1, 'Tuesday', '10:00', '11:30', 'CS303 AI'),
-(1, 'Wednesday', '14:00', '15:00', 'CS101 Intro'),
-(1, 'Friday', '09:00', '11:00', 'Lab Session'),
+-- Appointments table
+DROP TABLE IF EXISTS appointments CASCADE;
+CREATE TABLE appointments (
+    id SERIAL PRIMARY KEY,
+    faculty_id INTEGER REFERENCES faculty(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    day_of_week VARCHAR(10) NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    status VARCHAR(20) DEFAULT 'Pending' -- 'Pending', 'Scheduled', 'Declined'
+);
 
--- Anjali (Math)
-(2, 'Monday', '10:00', '11:00', 'MATH101 Calculus'),
-(2, 'Wednesday', '10:00', '11:30', 'MATH202 Linear Algebra'),
-(2, 'Thursday', '12:00', '13:30', 'MATH303 Stats');
+-- Notifications table
+DROP TABLE IF EXISTS notifications CASCADE;
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Queue entries table
+DROP TABLE IF EXISTS queue_entries CASCADE;
+CREATE TABLE queue_entries (
+    id SERIAL PRIMARY KEY,
+    faculty_id INTEGER REFERENCES faculty(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+    urgency VARCHAR(20) NOT NULL, -- 'High', 'Medium', 'Low'
+    check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'Waiting' -- 'Waiting', 'Serving', 'Completed', 'Cancelled'
+);
+
+-- Seed Data: Faculty (Basic seeding, main seeding occurs in seed.js)
+INSERT INTO faculty (name, department, room_number, floor_number, aliases, specialization, research_interests, bio) VALUES
+('Dr. Prashant Kumar', 'Computer Science', 'CS-101', '1st Floor', ARRAY['Prash', 'PK'], 'Artificial Intelligence', 'Machine learning in healthcare, deep neural networks, computer vision, natural language processing.', 'Dr. Prashant is an associate professor in CSE department with 10+ years of research experience in deep learning and healthcare analytics.'),
+('Dr. Anjali Sharma', 'Mathematics', 'MATH-202', '2nd Floor', ARRAY['Anjali', 'AS'], 'Machine Learning', 'Linear algebra, optimization algorithms, probability models, graph theory and cryptography.', 'Dr. Anjali is a passionate researcher focusing on numerical analysis and mathematical foundations of neural networks.'),
+('Dr. Vikram Singh', 'Physics', 'PHY-305', '3rd Floor', ARRAY['Vikram', 'VS'], 'Quantum Computing', 'Quantum computing algorithms, semiconductor physics, simulation of electromagnetic fields, nanotechnology.', 'Dr. Vikram leads the quantum optics lab and works on next-generation computing technologies and nanomaterials.');

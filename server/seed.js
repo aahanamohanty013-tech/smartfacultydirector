@@ -74,6 +74,46 @@ const seed = async () => {
         await pool.query(schemaSql);
         console.log("Schema applied.");
 
+        // Research interests mapping by specialization
+        const researchMap = {
+            'Artificial Intelligence': {
+                interests: 'Deep learning applications, neural networks, natural language processing, computer vision.',
+                bio: 'Associate Professor specializing in AI systems, neural network optimization, and computer vision architectures with over 8 years of academic teaching.'
+            },
+            'Machine Learning': {
+                interests: 'Supervised learning, reinforcement learning models, dimensionality reduction, clustering algorithms.',
+                bio: 'Experienced researcher focusing on machine learning theory, feature selection, and data-driven pattern recognition systems.'
+            },
+            'Data Science': {
+                interests: 'Big data analytics, data mining, predictive analytics, statistical inference and visualization.',
+                bio: 'Senior lecturer specializing in big data engineering, data collection pipelines, and large-scale data visualization frameworks.'
+            },
+            'Computer Networks': {
+                interests: 'Software-defined networking, routing protocols, wireless sensor networks, network simulation.',
+                bio: 'Assistant Professor with research focus on high-speed communications, overlay networks, and energy-efficient sensor node routing.'
+            },
+            'IoT': {
+                interests: 'Smart grid technologies, edge computing, embedded systems, IoT security protocols.',
+                bio: 'Lab coordinator working on micro-controllers, smart campus projects, and hardware-software integration for IoT nodes.'
+            },
+            'Cloud Computing': {
+                interests: 'Virtualization, microservices architecture, serverless computing, cloud storage systems.',
+                bio: 'Developer and academic focusing on cloud-native deployments, Kubernetes management, and distributed databases.'
+            },
+            'Cyber Security': {
+                interests: 'Cryptography, network security intrusion detection, blockchain technology, vulnerability assessment.',
+                bio: 'Security researcher with focus on decentralized ledgers, penetration testing, and zero-trust security architecture.'
+            },
+            'Web Development': {
+                interests: 'Full stack development, progressive web apps, dynamic UI design, performance optimization.',
+                bio: 'Front-end developer and instructor teaching modern web tech stacks, visual design frameworks, and server-side rendering.'
+            },
+            'Software Engineering': {
+                interests: 'Agile methodologies, software architecture patterns, code quality metrics, automated testing.',
+                bio: 'Agile practitioner and lecturer focusing on modern software engineering paradigms and automated CI/CD pipelines.'
+            }
+        };
+
         // Insert Faculty
         const insertFaculty = async (name, floor, room) => {
             // Generate Alias
@@ -87,12 +127,16 @@ const seed = async () => {
             // Specializations
             const specs = ['Artificial Intelligence', 'Machine Learning', 'Data Science', 'Computer Networks', 'IoT', 'Cloud Computing', 'Cyber Security', 'Web Development', 'Software Engineering'];
             const specialization = specs[Math.floor(Math.random() * specs.length)];
+            const rData = researchMap[specialization] || {
+                interests: 'Advanced algorithms, system architecture, database design.',
+                bio: 'Dedicated faculty member involved in core computer science research and undergraduate teaching.'
+            };
 
             console.log(`Adding ${name} (Alias: ${alias}, Room: ${room}, Spec: ${specialization})`);
 
             const res = await pool.query(
-                'INSERT INTO faculty (name, department, room_number, floor_number, aliases, specialization) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-                [name, 'Computer Science', room, floor, [alias], specialization]
+                'INSERT INTO faculty (name, department, room_number, floor_number, aliases, specialization, research_interests, bio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+                [name, 'Computer Science', room, floor, [alias], specialization, rData.interests, rData.bio]
             );
             return res.rows[0].id;
         };

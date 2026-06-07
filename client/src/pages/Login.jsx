@@ -4,23 +4,45 @@ import { API_URL } from '../config';
 
 const Login = () => {
     const navigate = useNavigate();
-    const [name, setName] = useState('');
+    const [role, setRole] = useState('student'); // 'student' or 'faculty'
+    
+    // Form inputs
+    const [nameOrEmail, setNameOrEmail] = useState(''); // Holds full name for faculty, email for student
     const [password, setPassword] = useState('');
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/login`, {
+            const endpoint = role === 'faculty' ? `${API_URL}/api/login` : `${API_URL}/api/student/login`;
+            const payload = role === 'faculty' 
+                ? { username: nameOrEmail, password } 
+                : { email: nameOrEmail, password };
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, password })
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (res.ok) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                navigate('/dashboard');
+                if (role === 'faculty') {
+                    localStorage.setItem('user', JSON.stringify({ 
+                        username: data.username, 
+                        facultyId: data.facultyId, 
+                        role: 'faculty' 
+                    }));
+                    navigate('/dashboard');
+                } else {
+                    localStorage.setItem('user', JSON.stringify({ 
+                        id: data.id,
+                        name: data.name, 
+                        email: data.email, 
+                        role: 'student' 
+                    }));
+                    navigate('/student-dashboard');
+                }
             } else {
-                alert(data.error);
+                alert(data.error || 'Login failed');
             }
         } catch (err) {
             console.error(err);
@@ -28,23 +50,46 @@ const Login = () => {
         }
     };
 
+    const inputLabel = role === 'faculty' ? 'Full Name' : 'RVCE Email Address';
+    const inputPlaceholder = role === 'faculty' ? 'e.g. Dr. Prashant Kumar' : 'e.g. student.cs24@rvce.edu.in';
+
     return (
         <div className="min-h-screen pt-24 px-4 flex items-center justify-center">
             <div className="bg-white/10 backdrop-blur-md p-8 rounded-2xl border border-white/20 shadow-2xl w-full max-w-md animate-fade-in-up">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-                    <p className="text-white/60">Login to access your dashboard</p>
+                
+                {/* Role Tabs */}
+                <div className="flex border border-white/10 rounded-xl overflow-hidden mb-6">
+                    <button 
+                        type="button"
+                        onClick={() => { setRole('student'); setNameOrEmail(''); }}
+                        className={`flex-1 py-2 text-sm font-semibold transition ${role === 'student' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                        Student
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={() => { setRole('faculty'); setNameOrEmail(''); }}
+                        className={`flex-1 py-2 text-sm font-semibold transition ${role === 'faculty' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                        Faculty
+                    </button>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-6">
+                <div className="text-center mb-6">
+                    <h2 className="text-3xl font-bold text-white mb-1">Welcome Back</h2>
+                    <p className="text-white/60">Log in to manage your campus connections</p>
+                </div>
+
+                <form onSubmit={handleLogin} className="space-y-4">
                     <div>
-                        <label className="block text-sm text-white/80 mb-2">Full Name</label>
+                        <label className="block text-sm text-white/80 mb-2">{inputLabel}</label>
                         <input
                             type="text"
                             className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:bg-white/10 transition"
-                            placeholder="e.g. Prashant"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            placeholder={inputPlaceholder}
+                            value={nameOrEmail}
+                            onChange={(e) => setNameOrEmail(e.target.value)}
+                            required
                         />
                     </div>
                     <div>
@@ -55,6 +100,7 @@ const Login = () => {
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            required
                         />
                     </div>
                     <button

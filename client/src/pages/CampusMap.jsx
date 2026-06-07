@@ -19,7 +19,7 @@ const CampusMap = () => {
 
             <div className="relative w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl border border-white/20 animate-fade-in-up delay-100 bg-white">
                 <img
-                    src="/campus_map.png"
+                    src="/assets/campus_map.png"
                     alt="Campus Map"
                     className="w-full h-auto object-contain"
                 />

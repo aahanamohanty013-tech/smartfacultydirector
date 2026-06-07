@@ -6,6 +6,7 @@ import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import StudentDashboard from './pages/StudentDashboard';
 import CampusMap from './pages/CampusMap';
 import Departments from './pages/Departments';
 import Programs from './pages/Programs';
@@ -22,6 +23,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/student-dashboard" element={<StudentDashboard />} />
                     <Route path="/faculty/:id" element={<FacultyProfile />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/departments" element={<Departments />} />
@@ -35,16 +37,25 @@ function App() {
 
 const GlobalNav = () => {
     const location = useLocation();
+    const navigate = useNavigate();
 
     // Hide nav on Departments, Programs, FacultyList as they have their own back buttons/layouts
     const hideNavPaths = ['/departments', '/programs', '/faculty-list'];
     if (hideNavPaths.includes(location.pathname)) return null;
 
-    const isDashboard = location.pathname === '/dashboard';
+    const isDashboard = location.pathname === '/dashboard' || location.pathname === '/student-dashboard';
+
+    // Parse current logged in session
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+
+    const handleLogout = () => {
+        localStorage.removeItem('user');
+        navigate('/');
+    };
 
     return (
         <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-50 pointer-events-none">
-            {/* Left Side - Pointer Events Auto */}
+            {/* Left Side */}
             <div className="flex items-center space-x-3 pointer-events-auto">
                 <Link to="/" className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/30 transition">
                     <span className="text-2xl">🎓</span>
@@ -55,11 +66,30 @@ const GlobalNav = () => {
                 </div>
             </div>
 
-            {/* Right Side - Auths (Hidden on Dashboard) */}
+            {/* Right Side - Auths (Hidden on Dashboards) */}
             {!isDashboard && (
-                <div className="flex space-x-4 pointer-events-auto">
-                    <Link to="/login" className="px-5 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition backdrop-blur-sm text-sm font-medium">Log In</Link>
-                    <Link to="/signup" className="px-5 py-2 rounded-lg bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 shadow-lg text-sm font-medium">Sign Up</Link>
+                <div className="flex space-x-4 pointer-events-auto items-center">
+                    {storedUser ? (
+                        <>
+                            <Link 
+                                to={storedUser.role === 'faculty' ? '/dashboard' : '/student-dashboard'} 
+                                className="px-5 py-2 rounded-lg bg-white/20 hover:bg-white/30 transition backdrop-blur-sm text-sm font-semibold border border-white/10"
+                            >
+                                {storedUser.role === 'faculty' ? 'Faculty Panel' : 'My Dashboard'}
+                            </Link>
+                            <button 
+                                onClick={handleLogout}
+                                className="px-4 py-2 text-xs text-white/60 hover:text-white transition font-medium"
+                            >
+                                Log Out
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login" className="px-5 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition backdrop-blur-sm text-sm font-medium">Log In</Link>
+                            <Link to="/signup" className="px-5 py-2 rounded-lg bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 shadow-lg text-sm font-medium">Sign Up</Link>
+                        </>
+                    )}
                 </div>
             )}
         </div>
@@ -76,7 +106,7 @@ function Home() {
                 {/* Central Image Wrapper */}
                 <div className="relative mb-4 group cursor-pointer">
                     <div className="w-48 h-48 rounded-full border-2 border-white/20 relative z-10 overflow-hidden bg-white shadow-2xl flex items-center justify-center">
-                        <img src="/hero_logo.png" alt="Institution Logo" className="w-full h-full object-cover scale-[1.35]" />
+                        <img src="/assets/hero_logo.png" alt="Institution Logo" className="w-full h-full object-cover scale-[1.35]" />
                     </div>
                     {/* Floating Badge */}
                     <div className="absolute top-2 right-2 z-20 bg-gradient-to-r from-orange-400 to-pink-500 text-white p-2 rounded-full shadow-lg animate-bounce-slow">
@@ -96,7 +126,7 @@ function Home() {
                         <span className="mr-2 text-yellow-400">🎗️</span> 100+ Expert Faculty
                     </div>
                     <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center">
-                        <span className="mr-2 text-blue-400">📅</span> Office Hours
+                        <span className="mr-2 text-blue-400">📅</span> Office Hours: 9am - 5pm
                     </div>
                     <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center">
                         <span className="mr-2 text-purple-400">✨</span> Top Ranked Institution
@@ -106,11 +136,6 @@ function Home() {
                 {/* Search Bar - Larger & Premium */}
                 <div className="w-full max-w-2xl mt-8">
                     <div className="relative group">
-                        {/* We wrap SearchBar to position it or styling, but SearchBar itself needs to be transparent/white-ready. 
-                             Actually, let's keep using the Logic of SearchBar but style a wrapper here or pass props? 
-                             For quick turnaround, we might need to modify SearchBar.jsx to look "glassy" or just wrap it.
-                             Let's modify SearchBar.jsx next to match. For now, place it here.
-                          */}
                         <SearchBar premiumMode={true} />
                     </div>
                 </div>
@@ -124,7 +149,7 @@ function Home() {
                 <ActionCard icon="👥" label="Faculty" color="bg-blue-500/20" link="/faculty-list" />
                 <ActionCard icon="🗺️" label="Campus Map" color="bg-green-500/20" link="/map" />
             </div>
-        </div>
+        </div >
     );
 }
 

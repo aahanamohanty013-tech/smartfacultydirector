@@ -7,7 +7,7 @@ const getApiUrl = () => {
     if (import.meta.env.PROD) {
         return ''; // Relative path for production (Vercel rewrites handle /api)
     }
-    return 'http://localhost:5000'; // Hardcoded local dev URL
+    return 'http://localhost:5001'; // Hardcoded local dev URL
 };
 
 export const API_URL = getApiUrl();
