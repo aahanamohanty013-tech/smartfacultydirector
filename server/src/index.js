@@ -159,8 +159,36 @@ app.get('/api/search', async (req, res) => {
         if (!trie.root || Object.keys(trie.root.children).length === 0) {
             await initializeTrie();
         }
-        const results = trie.search(q);
-        res.json(results);
+        
+        // 1. Trie Search (Prefix matching)
+        const trieResults = trie.search(q);
+
+        // 2. Database Substring Search (Fallback/Symmetric checks)
+        const dbRes = await pool.query(
+            `SELECT * FROM faculty 
+             WHERE name ILIKE $1 
+                OR department ILIKE $1 
+                OR specialization ILIKE $1 
+                OR EXISTS (
+                    SELECT 1 FROM unnest(aliases) a 
+                    WHERE a ILIKE $1
+                )`,
+            [`%${q}%`]
+        );
+        const dbResults = dbRes.rows;
+
+        // Merge results without duplicate IDs
+        const mergedResults = [...trieResults];
+        const seenIds = new Set(trieResults.map(f => f.id));
+
+        dbResults.forEach(faculty => {
+            if (!seenIds.has(faculty.id)) {
+                mergedResults.push(faculty);
+                seenIds.add(faculty.id);
+            }
+        });
+
+        res.json(mergedResults);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Search failed' });

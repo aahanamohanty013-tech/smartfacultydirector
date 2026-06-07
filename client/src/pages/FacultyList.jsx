@@ -7,6 +7,7 @@ const FacultyList = () => {
     const [faculties, setFaculties] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedDept, setSelectedDept] = useState('All');
 
     useEffect(() => {
         fetch(`${API_URL}/api/faculties`)
@@ -25,9 +26,13 @@ const FacultyList = () => {
     if (loading) return <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center text-white font-sans">Loading...</div>;
     if (error) return <div className="min-h-screen bg-[#7c2ae8] flex items-center justify-center text-white font-sans">{error}</div>;
 
+    // Get unique department names for dropdown
+    const departments = ['All', ...new Set(faculties.map(f => f.department).filter(Boolean))];
+
     // Group faculties by department
     const groupedFaculties = faculties.reduce((acc, faculty) => {
         const dept = faculty.department || 'Other';
+        if (selectedDept !== 'All' && dept !== selectedDept) return acc;
         if (!acc[dept]) acc[dept] = [];
         acc[dept].push(faculty);
         return acc;
@@ -40,7 +45,25 @@ const FacultyList = () => {
             </Link>
 
             <div className="max-w-7xl mx-auto flex flex-col items-center">
-                <div className="mb-12"></div>
+                
+                {/* Department Filter Dropdown */}
+                <div className="mb-12 w-full max-w-2xl text-left bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/10 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-xl font-bold text-white">Filter Directory</h3>
+                        <p className="text-xs text-white/60 mt-0.5">Select a department to view its faculty members</p>
+                    </div>
+                    <select
+                        value={selectedDept}
+                        onChange={(e) => setSelectedDept(e.target.value)}
+                        className="bg-white/15 border border-white/20 rounded-xl px-4 py-2.5 text-white font-semibold focus:outline-none focus:bg-white/30 transition text-sm cursor-pointer min-w-[220px]"
+                    >
+                        {departments.map((d) => (
+                            <option key={d} value={d} className="text-black font-medium">
+                                {d === 'All' ? 'All Departments' : d}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 <div className="w-full space-y-12 animate-fade-in-up">
                     {Object.entries(groupedFaculties).map(([department, deptFaculties]) => (
