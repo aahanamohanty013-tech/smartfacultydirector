@@ -334,7 +334,13 @@ app.post('/api/signup', async (req, res) => {
         res.json({ success: true, message: 'Account created. Verification code sent.', facultyId, mockVerificationCode: verificationCode });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Signup failed. Email or Shortform might be taken.' });
+        let errorMsg = 'Signup failed. ';
+        if (err.code === '23505') {
+            errorMsg += 'Email or Shortform might be taken.';
+        } else {
+            errorMsg += err.message;
+        }
+        res.status(500).json({ error: errorMsg });
     }
 });
 
@@ -413,7 +419,13 @@ app.post('/api/student/signup', async (req, res) => {
         res.json({ success: true, student: result.rows[0], mockVerificationCode: verificationCode });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Signup failed. Email might already be registered.' });
+        let errorMsg = 'Signup failed. ';
+        if (err.code === '23505') {
+            errorMsg += 'Email might already be registered.';
+        } else {
+            errorMsg += err.message;
+        }
+        res.status(500).json({ error: errorMsg });
     }
 });
 
@@ -835,13 +847,40 @@ app.delete('/api/timetable/:id', async (req, res) => {
     }
 });
 
-app.post('/api/debug/sql', async (req, res) => {
-    const { query, params } = req.body;
+// Database Debug Helper Info
+const getDbDebugInfo = () => {
+    const connStr = process.env.DATABASE_URL || '';
+    if (connStr) {
+        try {
+            const url = new URL(connStr);
+            return `Neon/Remote (host: ${url.hostname}, database: ${url.pathname.substring(1)})`;
+        } catch (e) {
+            return 'Invalid URL format in DATABASE_URL';
+        }
+    }
+    return `Local/Default (host: ${process.env.DB_HOST || 'localhost'}, database: ${process.env.DB_NAME || 'smart_faculty'})`;
+};
+
+// Database Status endpoint
+app.get('/api/db-status', async (req, res) => {
     try {
-        const result = await pool.query(query, params || []);
-        res.json({ success: true, rows: result.rows, rowCount: result.rowCount });
+        const dbRes = await pool.query('SELECT NOW()');
+        const info = getDbDebugInfo();
+        res.json({
+            success: true,
+            status: 'Connected',
+            database: info,
+            time: dbRes.rows[0].now
+        });
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        console.error('Database connection test failed:', err);
+        const info = getDbDebugInfo();
+        res.status(500).json({
+            success: false,
+            status: 'Disconnected',
+            database: info,
+            error: err.message
+        });
     }
 });
 
