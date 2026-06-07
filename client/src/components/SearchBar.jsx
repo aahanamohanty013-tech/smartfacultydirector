@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const SearchBar = ({ premiumMode }) => {
     const [query, setQuery] = useState('');
@@ -13,7 +14,7 @@ const SearchBar = ({ premiumMode }) => {
         const timer = setTimeout(() => {
             if (query.trim()) {
                 const endpoint = searchMode === 'trie' ? '/api/search' : '/api/search/kmp';
-                fetch(`${endpoint}?q=${encodeURIComponent(query)}`)
+                fetch(`${API_URL}${endpoint}?q=${encodeURIComponent(query)}`)
                     .then(res => res.json())
                     .then(data => setResults(data))
                     .catch(err => console.error(err));
