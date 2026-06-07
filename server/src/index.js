@@ -249,7 +249,13 @@ app.post('/api/faculty', async (req, res) => {
 
 // --- Auth Routes: Faculty ---
 app.post('/api/signup', async (req, res) => {
-    const { name, shortform, password, specialization } = req.body;
+    const { name, email, shortform, password, specialization } = req.body;
+
+    // Enforce Domain Check
+    if (!email || !email.endsWith('@rvce.edu.in')) {
+        return res.status(400).json({ error: 'Only @rvce.edu.in email domain is allowed' });
+    }
+
     try {
         const facultyRes = await pool.query(
             'INSERT INTO faculty (name, department, room_number, floor_number, aliases, specialization) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
@@ -258,22 +264,28 @@ app.post('/api/signup', async (req, res) => {
         const facultyId = facultyRes.rows[0].id;
 
         await pool.query(
-            'INSERT INTO users (username, password_hash, faculty_id) VALUES ($1, $2, $3)',
-            [name, password, facultyId]
+            'INSERT INTO users (username, email, password_hash, faculty_id) VALUES ($1, $2, $3, $4)',
+            [name, email, password, facultyId]
         );
 
         initializeTrie();
         res.json({ success: true, message: 'Account created', facultyId });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Signup failed. Username/Shortform might be taken.' });
+        res.status(500).json({ error: 'Signup failed. Email or Shortform might be taken.' });
     }
 });
 
 app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
+
+    // Enforce Domain Check
+    if (!email || !email.endsWith('@rvce.edu.in')) {
+        return res.status(400).json({ error: 'Only @rvce.edu.in email domain is allowed' });
+    }
+
     try {
-        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
 
         if (result.rows.length === 0) {
             return res.status(401).json({ error: 'Invalid credentials' });
@@ -284,7 +296,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        res.json({ success: true, username: user.username, facultyId: user.faculty_id });
+        res.json({ success: true, username: user.username, email: user.email, facultyId: user.faculty_id });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });

@@ -14,9 +14,7 @@ const Login = () => {
         e.preventDefault();
         try {
             const endpoint = role === 'faculty' ? `${API_URL}/api/login` : `${API_URL}/api/student/login`;
-            const payload = role === 'faculty' 
-                ? { username: nameOrEmail, password } 
-                : { email: nameOrEmail, password };
+            const payload = { email: nameOrEmail, password };
 
             const res = await fetch(endpoint, {
                 method: 'POST',
@@ -28,6 +26,7 @@ const Login = () => {
                 if (role === 'faculty') {
                     localStorage.setItem('user', JSON.stringify({ 
                         username: data.username, 
+                        email: data.email,
                         facultyId: data.facultyId, 
                         role: 'faculty' 
                     }));
@@ -50,8 +49,8 @@ const Login = () => {
         }
     };
 
-    const inputLabel = role === 'faculty' ? 'Full Name' : 'RVCE Email Address';
-    const inputPlaceholder = role === 'faculty' ? 'e.g. Dr. Prashant Kumar' : 'e.g. student.cs24@rvce.edu.in';
+    const inputLabel = "RVCE Email Address";
+    const inputPlaceholder = role === 'faculty' ? 'e.g. faculty.cs@rvce.edu.in' : 'e.g. student.cs24@rvce.edu.in';
 
     return (
         <div className="min-h-screen pt-24 px-4 flex items-center justify-center">

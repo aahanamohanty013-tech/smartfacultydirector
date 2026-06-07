@@ -9,6 +9,7 @@ const Signup = () => {
     // Faculty Form State
     const [facultyData, setFacultyData] = useState({
         name: '',
+        email: '',
         shortform: '',
         password: '',
         specialization: ''
@@ -37,6 +38,10 @@ const Signup = () => {
 
             // Simple frontend checks
             if (role === 'student' && !studentData.email.endsWith('@rvce.edu.in')) {
+                alert('Only @rvce.edu.in emails are allowed.');
+                return;
+            }
+            if (role === 'faculty' && !facultyData.email.endsWith('@rvce.edu.in')) {
                 alert('Only @rvce.edu.in emails are allowed.');
                 return;
             }
@@ -107,6 +112,10 @@ const Signup = () => {
                             <div>
                                 <label className="block text-sm text-white/80 mb-1">Full Name</label>
                                 <input name="name" type="text" onChange={handleFacultyChange} value={facultyData.name} className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:bg-white/10" placeholder="Dr. John Doe" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-white/80 mb-1">RVCE Email</label>
+                                <input name="email" type="email" onChange={handleFacultyChange} value={facultyData.email} className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:bg-white/10" placeholder="drjohndoe@rvce.edu.in" required />
                             </div>
                             <div>
                                 <label className="block text-sm text-white/80 mb-1">Shortform (Alias)</label>
