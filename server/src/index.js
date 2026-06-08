@@ -101,14 +101,6 @@ const calculateAvailability = (timetables) => {
         };
     }
 
-    if (isBeforeWorkingHours) {
-        return {
-            status: 'Not Available',
-            currentDetails: 'Outside Working Hours',
-            bestVisitingTime: 'Today at 09:00'
-        };
-    }
-
     if (isAfterWorkingHours) {
         const nextDay = currentDay === 'Friday' ? 'Monday' : 'Tomorrow';
         return {
@@ -118,7 +110,7 @@ const calculateAvailability = (timetables) => {
         };
     }
 
-    // 1. Check if currently in class
+    // 1. Check if currently in class (only relevant if during working hours)
     const currentClass = timetables.find(t =>
         t.day_of_week === currentDay &&
         currentTimeStr >= t.start_time &&
@@ -128,52 +120,55 @@ const calculateAvailability = (timetables) => {
     let status = 'Likely Available';
     let currentDetails = 'No class scheduled right now.';
 
-    if (currentClass) {
+    if (isBeforeWorkingHours) {
+        status = 'Not Available';
+        currentDetails = 'Outside Working Hours';
+    } else if (currentClass) {
         status = 'In Class';
         currentDetails = `Class: ${currentClass.course_name} (${currentClass.start_time.slice(0, 5)} - ${currentClass.end_time.slice(0, 5)})`;
     }
 
     // 2. Find Best Visiting Time (Next Free Slot)
-    let bestVisitingTime = "Unknown";
-
-    // Get today's classes sorted by time
     const todaysClasses = timetables
         .filter(t => t.day_of_week === currentDay)
         .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-    // Determine where to start searching for a gap
-    let searchStartTime = currentTimeStr;
-    if (status === 'In Class') {
-        searchStartTime = currentClass.end_time;
+    // Start looking from 09:00:00 if before working hours, otherwise current time
+    const evalTimeStr = isBeforeWorkingHours ? '09:00:00' : currentTimeStr;
+
+    // Find the first free time T >= evalTimeStr
+    let T = evalTimeStr;
+    while (true) {
+        const occupyingClass = todaysClasses.find(c => T >= c.start_time && T < c.end_time);
+        if (occupyingClass) {
+            T = occupyingClass.end_time;
+        } else {
+            break;
+        }
     }
 
-    // Find the first class that starts AFTER our search start time
-    const nextClass = todaysClasses.find(t => t.start_time > searchStartTime);
-
-    if (searchStartTime >= '16:30:00') {
+    let bestVisitingTime = "Unknown";
+    if (T >= '16:30:00') {
         const nextDay = currentDay === 'Friday' ? 'Monday' : 'Tomorrow';
         bestVisitingTime = `${nextDay} at 09:00`;
     } else {
-        if (nextClass) {
-            const nextClassStart = nextClass.start_time;
-            if (nextClassStart > '16:30:00') {
-                if (status === 'In Class') {
-                    bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until 16:30)`;
-                } else {
-                    bestVisitingTime = `Now (Free until 16:30)`;
-                }
-            } else {
-                if (status === 'In Class') {
-                    bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until ${nextClassStart.slice(0, 5)})`;
-                } else {
-                    bestVisitingTime = `Now (Free until ${nextClassStart.slice(0, 5)})`;
-                }
-            }
+        // Find first class starting after T
+        const nextClass = todaysClasses.find(c => c.start_time > T);
+        let endSlot = '16:30:00';
+        if (nextClass && nextClass.start_time < '16:30:00') {
+            endSlot = nextClass.start_time;
+        }
+
+        const formattedStart = T.slice(0, 5);
+        const formattedEnd = endSlot.slice(0, 5);
+
+        if (isBeforeWorkingHours) {
+            bestVisitingTime = `Today at ${formattedStart} (Free until ${formattedEnd})`;
         } else {
-            if (status === 'In Class') {
-                bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until 16:30)`;
+            if (T === currentTimeStr) {
+                bestVisitingTime = `Now (Free until ${formattedEnd})`;
             } else {
-                bestVisitingTime = "Now (Free until 16:30)";
+                bestVisitingTime = `After ${formattedStart} (Free until ${formattedEnd})`;
             }
         }
     }
