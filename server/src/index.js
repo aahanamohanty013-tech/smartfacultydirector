@@ -404,9 +404,11 @@ app.post('/api/signup', async (req, res) => {
             if (existingUser.is_verified) {
                 return res.status(400).json({ error: 'Email is already registered.' });
             } else {
-                const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-                console.log(`[EMAIL VERIFICATION] Faculty code regenerated for ${email}: ${verificationCode}`);
+                // Reuse existing code (don't regenerate - it causes email/DB mismatch if user re-submits)
+                const verificationCode = existingUser.verification_code || Math.floor(100000 + Math.random() * 900000).toString();
+                console.log(`[EMAIL VERIFICATION] Faculty code resent for ${email}: ${verificationCode}`);
                 
+                // Only update password/name, NOT the code (unless there was no code)
                 await pool.query(
                     'UPDATE users SET username = $1, password_hash = $2, verification_code = $3 WHERE id = $4',
                     [name, password, verificationCode, existingUser.id]
@@ -499,9 +501,11 @@ app.post('/api/student/signup', async (req, res) => {
             if (existingStudent.is_verified) {
                 return res.status(400).json({ error: 'Email is already registered.' });
             } else {
-                const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-                console.log(`[EMAIL VERIFICATION] Student code regenerated for ${email}: ${verificationCode}`);
+                // Reuse existing code (don't regenerate - it causes email/DB mismatch if user re-submits)
+                const verificationCode = existingStudent.verification_code || Math.floor(100000 + Math.random() * 900000).toString();
+                console.log(`[EMAIL VERIFICATION] Student code resent for ${email}: ${verificationCode}`);
                 
+                // Only update name/password, NOT the code (unless there was no code)
                 const updateRes = await pool.query(
                     'UPDATE students SET name = $1, password_hash = $2, verification_code = $3 WHERE id = $4 RETURNING id, name, email',
                     [name, password, verificationCode, existingStudent.id]
