@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const trie = require('./trie');
@@ -25,6 +26,59 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
+
+// Email verification helper
+const sendVerificationEmail = async (email, role, code, req) => {
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.get('host');
+    const verifyLink = `${protocol}://${host}/api/verify-link?email=${encodeURIComponent(email)}&role=${role}&code=${code}`;
+
+    console.log(`\n📧 [EMAIL VERIFICATION] Link for ${role} ${email}: ${verifyLink}\n`);
+
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
+        console.log('⚠️ EMAIL_USER or EMAIL_APP_PASSWORD not set in environment. Real email not sent.');
+        return;
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_APP_PASSWORD.replace(/\s/g, '')
+            }
+        });
+
+        const mailOptions = {
+            from: `"Smart Faculty Directory" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `Verify your ${role} account - Smart Faculty`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; background-color: #ffffff; color: #333;">
+                    <h2 style="color: #7c2ae8; text-align: center;">Welcome to Smart Faculty!</h2>
+                    <p>Hello,</p>
+                    <p>Thank you for joining the Smart Faculty Directory as a <b>${role === 'faculty' ? 'faculty member' : 'student'}</b>. Please verify your account by clicking the button below:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${verifyLink}" style="background-color: #7c2ae8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Verify My Account</a>
+                    </div>
+                    <p>Alternatively, you can manually enter this 6-digit verification code on the site:</p>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <span style="font-size: 24px; font-weight: bold; letter-spacing: 4px; background-color: #f4f4f4; padding: 10px 20px; border-radius: 5px; display: inline-block; border: 1px dashed #7c2ae8;">${code}</span>
+                    </div>
+                    <p style="font-size: 12px; color: #777;">If the button doesn't work, copy and paste this link into your browser:</p>
+                    <p style="font-size: 12px; color: #777; word-break: break-all;">${verifyLink}</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin-top: 30px;">
+                    <p style="font-size: 10px; color: #aaa; text-align: center;">This is an automated message. Please do not reply.</p>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Email successfully sent to ${email}: ${info.response}`);
+    } catch (error) {
+        console.error(`❌ NODEMAILER ERROR for ${email}:`, error.message);
+    }
+};
 
 // Initialize Trie with data from DB
 const initializeTrie = async () => {
@@ -355,7 +409,8 @@ app.post('/api/signup', async (req, res) => {
                     'UPDATE users SET username = $1, password_hash = $2, verification_code = $3 WHERE id = $4',
                     [name, password, verificationCode, existingUser.id]
                 );
-                return res.json({ success: true, message: 'Verification code resent.', facultyId: existingUser.faculty_id, mockVerificationCode: verificationCode });
+                await sendVerificationEmail(email, 'faculty', verificationCode, req);
+                return res.json({ success: true, message: 'Verification link resent to your email.', facultyId: existingUser.faculty_id });
             }
         }
 
@@ -374,7 +429,8 @@ app.post('/api/signup', async (req, res) => {
         );
 
         initializeTrie();
-        res.json({ success: true, message: 'Account created. Verification code sent.', facultyId, mockVerificationCode: verificationCode });
+        await sendVerificationEmail(email, 'faculty', verificationCode, req);
+        res.json({ success: true, message: 'Account created. Verification link sent to your email.', facultyId });
     } catch (err) {
         console.error(err);
         let errorMsg = 'Signup failed. ';
@@ -448,7 +504,8 @@ app.post('/api/student/signup', async (req, res) => {
                     'UPDATE students SET name = $1, password_hash = $2, verification_code = $3 WHERE id = $4 RETURNING id, name, email',
                     [name, password, verificationCode, existingStudent.id]
                 );
-                return res.json({ success: true, student: updateRes.rows[0], mockVerificationCode: verificationCode, message: 'Verification code resent.' });
+                await sendVerificationEmail(email, 'student', verificationCode, req);
+                return res.json({ success: true, student: updateRes.rows[0], message: 'Verification link resent to your email.' });
             }
         }
 
@@ -459,7 +516,8 @@ app.post('/api/student/signup', async (req, res) => {
             'INSERT INTO students (name, email, password_hash, is_verified, verification_code) VALUES ($1, $2, $3, false, $4) RETURNING id, name, email',
             [name, email, password, verificationCode]
         );
-        res.json({ success: true, student: result.rows[0], mockVerificationCode: verificationCode });
+        await sendVerificationEmail(email, 'student', verificationCode, req);
+        res.json({ success: true, student: result.rows[0] });
     } catch (err) {
         console.error(err);
         let errorMsg = 'Signup failed. ';
@@ -539,6 +597,54 @@ app.post('/api/verify', async (req, res) => {
         res.status(500).json({ error: 'Verification failed.' });
     }
 });
+
+// GET verification link handler (clicks from email)
+app.get('/api/verify-link', async (req, res) => {
+    const { email, role, code } = req.query;
+    if (!email || !role || !code) {
+        return res.status(400).send('<h1>Missing verification parameters</h1>');
+    }
+
+    try {
+        if (role === 'faculty') {
+            const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+            if (result.rows.length === 0) {
+                return res.status(404).send('<h1>Faculty user not found</h1>');
+            }
+            const user = result.rows[0];
+            if (user.verification_code !== code) {
+                return res.status(400).send('<h1>Invalid or expired verification link</h1>');
+            }
+            await pool.query('UPDATE users SET is_verified = true, verification_code = null WHERE id = $1', [user.id]);
+        } else {
+            const result = await pool.query('SELECT * FROM students WHERE email = $1', [email]);
+            if (result.rows.length === 0) {
+                return res.status(404).send('<h1>Student not found</h1>');
+            }
+            const student = result.rows[0];
+            if (student.verification_code !== code) {
+                return res.status(400).send('<h1>Invalid or expired verification link</h1>');
+            }
+            await pool.query('UPDATE students SET is_verified = true, verification_code = null WHERE id = $1', [student.id]);
+        }
+
+        // Determine frontend URL dynamically
+        const host = req.get('host') || '';
+        let frontendUrl = '';
+        if (host.includes('localhost') || host.includes('127.0.0.1')) {
+            frontendUrl = 'http://localhost:5173';
+        } else {
+            const protocol = req.headers['x-forwarded-proto'] || 'https';
+            frontendUrl = `${protocol}://${host}`;
+        }
+
+        res.redirect(`${frontendUrl}/login?verified=true`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('<h1>Verification failed due to a server error</h1>');
+    }
+});
+
 
 // --- Appointment Booking Routes ---
 

@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [role, setRole] = useState('student'); // 'student' or 'faculty'
+    
+    // Verification banner
+    const [verifiedMsg, setVerifiedMsg] = useState(null);
+
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        if (queryParams.get('verified') === 'true') {
+            setVerifiedMsg('Your email has been successfully verified! Please log in.');
+        }
+    }, [location]);
     
     // Form inputs
     const [nameOrEmail, setNameOrEmail] = useState(''); // Holds full name for faculty, email for student
@@ -88,6 +99,12 @@ const Login = () => {
                     <h2 className="text-3xl font-bold text-white mb-1">Welcome Back</h2>
                     <p className="text-white/60">Log in to manage your campus connections</p>
                 </div>
+
+                {verifiedMsg && (
+                    <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 text-green-200 text-sm font-semibold rounded-xl text-center shadow-lg animate-fade-in-up">
+                        📬 {verifiedMsg}
+                    </div>
+                )}
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
