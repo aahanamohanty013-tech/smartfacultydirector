@@ -10,7 +10,16 @@ const Dashboard = () => {
     const [editMode, setEditMode] = useState(false);
 
     // Form States
-    const [formData, setFormData] = useState({});
+    const [formData, setFormData] = useState({
+        room_number: '',
+        floor_number: '',
+        specialization: '',
+        department: '',
+        research_interests: '',
+        bio: '',
+        on_leave: false,
+        duty_status: ''
+    });
     const [newClass, setNewClass] = useState({
         day_of_week: 'Monday',
         start_time: '09:00',
@@ -44,7 +53,9 @@ const Dashboard = () => {
                 specialization: data.specialization || '',
                 department: data.department,
                 research_interests: data.research_interests || '',
-                bio: data.bio || ''
+                bio: data.bio || '',
+                on_leave: data.on_leave || false,
+                duty_status: data.duty_status || ''
             });
 
             // Fetch Walk-in Queue & Appointments
@@ -92,6 +103,43 @@ const Dashboard = () => {
             }
         } catch (err) {
             alert("Update failed");
+        }
+    };
+
+    const handleToggleLeave = async () => {
+        const updatedLeave = !formData.on_leave;
+        setFormData(prev => ({ ...prev, on_leave: updatedLeave }));
+        
+        try {
+            const res = await fetch(`${API_URL}/api/faculty/${faculty.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, on_leave: updatedLeave })
+            });
+            if (res.ok) {
+                fetchFacultyData(faculty.id);
+            }
+        } catch (err) {
+            console.error("Failed to update leave status", err);
+        }
+    };
+
+    const handleDutyStatusChange = (e) => {
+        setFormData(prev => ({ ...prev, duty_status: e.target.value }));
+    };
+
+    const handleSaveDutyStatus = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/faculty/${faculty.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, duty_status: formData.duty_status })
+            });
+            if (res.ok) {
+                fetchFacultyData(faculty.id);
+            }
+        } catch (err) {
+            console.error("Failed to update duty status", err);
         }
     };
 
@@ -236,6 +284,41 @@ const Dashboard = () => {
                             >
                                 {editMode ? 'Cancel' : 'Edit Details'}
                             </button>
+                        </div>
+
+                        {/* Quick Availability & Duty Settings */}
+                        <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4 mb-6">
+                            <h3 className="text-sm font-bold text-white/70">Quick Status & Duty Settings</h3>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                {/* On Leave Toggle */}
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-sm font-medium text-white/80">On Leave:</span>
+                                    <button
+                                        onClick={handleToggleLeave}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 shadow-md ${
+                                            formData.on_leave
+                                                ? 'bg-red-500 text-white shadow-red-500/30'
+                                                : 'bg-white/10 text-white/70 hover:bg-white/20'
+                                        }`}
+                                    >
+                                        {formData.on_leave ? '🔴 Yes (On Leave)' : '⚪ No (Active)'}
+                                    </button>
+                                </div>
+                                
+                                {/* Duty Status Text */}
+                                <div className="flex-1 flex items-center space-x-2">
+                                    <span className="text-sm font-medium text-white/80 whitespace-nowrap">Current Duty:</span>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Exam Duty, Meeting"
+                                        className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:bg-white/20 transition"
+                                        value={formData.duty_status || ''}
+                                        onChange={handleDutyStatusChange}
+                                        onBlur={handleSaveDutyStatus}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveDutyStatus(); }}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {editMode ? (

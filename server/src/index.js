@@ -91,6 +91,8 @@ const initializeTrie = async () => {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
             ALTER TABLE students ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
             ALTER TABLE students ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+            ALTER TABLE faculty ADD COLUMN IF NOT EXISTS on_leave BOOLEAN DEFAULT FALSE;
+            ALTER TABLE faculty ADD COLUMN IF NOT EXISTS duty_status VARCHAR(255) DEFAULT NULL;
         `);
         console.log('Database migrations applied successfully.');
     } catch (err) {
@@ -138,12 +140,26 @@ const initializeTrie = async () => {
 };
 
 // --- Helper Logic: Availability ---
-const calculateAvailability = (timetables) => {
+const calculateAvailability = (timetables, faculty) => {
+    if (faculty && faculty.on_leave) {
+        return {
+            status: 'Not Available',
+            currentDetails: 'On Leave',
+            bestVisitingTime: 'Check back tomorrow'
+        };
+    }
+
+    if (faculty && faculty.duty_status) {
+        return {
+            status: 'Not Available',
+            currentDetails: faculty.duty_status,
+            bestVisitingTime: 'Next working day'
+        };
+    }
+
     const now = new Date();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const currentDayIndex = now.getDay();
-    const currentDay = days[currentDayIndex];
-    const currentTimeStr = now.toTimeString().split(' ')[0]; // "HH:MM:SS"
+    const currentDay = now.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' });
+    const currentTimeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false }); // "HH:MM:SS"
 
     const isWeekend = currentDay === 'Saturday' || currentDay === 'Sunday';
     const isBeforeWorkingHours = currentTimeStr < '09:00:00';
@@ -345,7 +361,7 @@ app.get('/api/faculty/:id', async (req, res) => {
         const timetables = timetableRes.rows;
 
         // Compute Availability
-        const availability = calculateAvailability(timetables);
+        const availability = calculateAvailability(timetables, faculty);
 
         res.json({ ...faculty, ...availability, timetables });
     } catch (err) {
@@ -357,12 +373,44 @@ app.get('/api/faculty/:id', async (req, res) => {
 // Update Faculty Details
 app.put('/api/faculty/:id', async (req, res) => {
     const { id } = req.params;
-    const { room_number, floor_number, specialization, department, research_interests, bio } = req.body;
+    const fields = req.body;
+    
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    const allowedFields = [
+        'room_number', 
+        'floor_number', 
+        'specialization', 
+        'department', 
+        'research_interests', 
+        'bio', 
+        'on_leave', 
+        'duty_status'
+    ];
+    
+    for (const field of allowedFields) {
+        if (fields[field] !== undefined) {
+            let val = fields[field];
+            if (field === 'duty_status' && val === '') {
+                val = null; // Clear if empty string
+            }
+            updates.push(`${field} = $${paramIndex}`);
+            values.push(val);
+            paramIndex++;
+        }
+    }
+    
+    if (updates.length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    values.push(id);
+    const query = `UPDATE faculty SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    
     try {
-        const result = await pool.query(
-            'UPDATE faculty SET room_number = COALESCE($1, room_number), floor_number = COALESCE($2, floor_number), specialization = COALESCE($3, specialization), department = COALESCE($4, department), research_interests = COALESCE($5, research_interests), bio = COALESCE($6, bio) WHERE id = $7 RETURNING *',
-            [room_number, floor_number, specialization, department, research_interests, bio, id]
-        );
+        const result = await pool.query(query, values);
         initializeTrie(); // Re-index
         res.json(result.rows[0]);
     } catch (err) {
@@ -716,6 +764,22 @@ app.post('/api/faculty/:id/appointments', async (req, res) => {
 
         if (requestStartMins < startBound || requestEndMins > endBound || requestStartMins >= requestEndMins) {
             return res.status(400).json({ error: 'Appointments must be scheduled between 9:00 AM and 4:30 PM.' });
+        }
+
+        // 5. Past Time Check (For current day appointments)
+        const now = new Date();
+        const currentDay = now.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' });
+        if (day_of_week === currentDay) {
+            const currentTimeStr = now.toLocaleTimeString('en-US', { 
+                timeZone: 'Asia/Kolkata', 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            const currentMins = timeToMinutes(currentTimeStr);
+            if (currentMins >= requestStartMins) {
+                return res.status(400).json({ error: 'Cannot schedule appointments in the past.' });
+            }
         }
 
         // Save Appointment Request as Pending
