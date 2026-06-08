@@ -29,7 +29,9 @@ const pool = new Pool({
 
 // Email verification helper
 const sendVerificationEmail = async (email, role, code, req) => {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    // x-forwarded-proto can be 'https,https' on Vercel — take only first value
+    const rawProto = req.headers['x-forwarded-proto'] || 'http';
+    const protocol = rawProto.split(',')[0].trim();
     const host = req.get('host');
     const verifyLink = `${protocol}://${host}/api/verify-link?email=${encodeURIComponent(email)}&role=${role}&code=${code}`;
 
@@ -598,6 +600,35 @@ app.post('/api/verify', async (req, res) => {
     }
 });
 
+// Resend verification email
+app.post('/api/resend-verification', async (req, res) => {
+    const { email, role } = req.body;
+    if (!email || !role) {
+        return res.status(400).json({ error: 'Email and role are required.' });
+    }
+
+    try {
+        const table = role === 'faculty' ? 'users' : 'students';
+        const result = await pool.query(`SELECT * FROM ${table} WHERE email = $1`, [email]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Account not found. Please sign up first.' });
+        }
+        const user = result.rows[0];
+        if (user.is_verified) {
+            return res.status(400).json({ error: 'This account is already verified. Please log in.' });
+        }
+
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        await pool.query(`UPDATE ${table} SET verification_code = $1 WHERE id = $2`, [newCode, user.id]);
+        await sendVerificationEmail(email, role, newCode, req);
+
+        res.json({ success: true, message: 'A fresh verification email has been sent.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to resend verification email.' });
+    }
+});
+
 // GET verification link handler (clicks from email)
 app.get('/api/verify-link', async (req, res) => {
     const { email, role, code } = req.query;
@@ -628,13 +659,14 @@ app.get('/api/verify-link', async (req, res) => {
             await pool.query('UPDATE students SET is_verified = true, verification_code = null WHERE id = $1', [student.id]);
         }
 
-        // Determine frontend URL dynamically
+        // Determine frontend URL dynamically (x-forwarded-proto can be comma-separated on Vercel)
         const host = req.get('host') || '';
         let frontendUrl = '';
         if (host.includes('localhost') || host.includes('127.0.0.1')) {
             frontendUrl = 'http://localhost:5173';
         } else {
-            const protocol = req.headers['x-forwarded-proto'] || 'https';
+            const rawProto = req.headers['x-forwarded-proto'] || 'https';
+            const protocol = rawProto.split(',')[0].trim();
             frontendUrl = `${protocol}://${host}`;
         }
 
