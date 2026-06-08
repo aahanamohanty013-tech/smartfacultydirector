@@ -1075,27 +1075,4 @@ if (process.env.NODE_ENV !== 'production') {
     initializeTrie();
 }
 
-// TEMPORARY ADMIN: Force-verify an account (remove after use)
-app.post('/api/admin/force-verify', async (req, res) => {
-    const { email, role, secret } = req.body;
-    // Simple secret guard so random people can't call this
-    if (secret !== 'rvce-admin-2026') {
-        return res.status(403).json({ error: 'Forbidden' });
-    }
-    try {
-        const table = role === 'faculty' ? 'users' : 'students';
-        const result = await pool.query(
-            `UPDATE ${table} SET is_verified = true, verification_code = null WHERE email = $1 RETURNING email`,
-            [email]
-        );
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Account not found' });
-        }
-        res.json({ success: true, message: `${email} has been force-verified as ${role}.` });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 module.exports = app;
