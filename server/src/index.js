@@ -89,6 +89,35 @@ const calculateAvailability = (timetables) => {
     const currentDay = days[currentDayIndex];
     const currentTimeStr = now.toTimeString().split(' ')[0]; // "HH:MM:SS"
 
+    const isWeekend = currentDay === 'Saturday' || currentDay === 'Sunday';
+    const isBeforeWorkingHours = currentTimeStr < '09:00:00';
+    const isAfterWorkingHours = currentTimeStr > '16:30:00';
+
+    if (isWeekend) {
+        return {
+            status: 'Not Available',
+            currentDetails: 'Outside Working Hours',
+            bestVisitingTime: 'Monday at 09:00'
+        };
+    }
+
+    if (isBeforeWorkingHours) {
+        return {
+            status: 'Not Available',
+            currentDetails: 'Outside Working Hours',
+            bestVisitingTime: 'Today at 09:00'
+        };
+    }
+
+    if (isAfterWorkingHours) {
+        const nextDay = currentDay === 'Friday' ? 'Monday' : 'Tomorrow';
+        return {
+            status: 'Not Available',
+            currentDetails: 'Outside Working Hours',
+            bestVisitingTime: `${nextDay} at 09:00`
+        };
+    }
+
     // 1. Check if currently in class
     const currentClass = timetables.find(t =>
         t.day_of_week === currentDay &&
@@ -97,7 +126,7 @@ const calculateAvailability = (timetables) => {
     );
 
     let status = 'Likely Available';
-    let currentDetails = null;
+    let currentDetails = 'No class scheduled right now.';
 
     if (currentClass) {
         status = 'In Class';
@@ -105,7 +134,7 @@ const calculateAvailability = (timetables) => {
     }
 
     // 2. Find Best Visiting Time (Next Free Slot)
-    let bestVisitingTime = "Unknown"; // Default
+    let bestVisitingTime = "Unknown";
 
     // Get today's classes sorted by time
     const todaysClasses = timetables
@@ -121,17 +150,31 @@ const calculateAvailability = (timetables) => {
     // Find the first class that starts AFTER our search start time
     const nextClass = todaysClasses.find(t => t.start_time > searchStartTime);
 
-    if (nextClass) {
-        if (status === 'In Class') {
-            bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until ${nextClass.start_time.slice(0, 5)})`;
-        } else {
-            bestVisitingTime = `Now (Free until ${nextClass.start_time.slice(0, 5)})`;
-        }
+    if (searchStartTime >= '16:30:00') {
+        const nextDay = currentDay === 'Friday' ? 'Monday' : 'Tomorrow';
+        bestVisitingTime = `${nextDay} at 09:00`;
     } else {
-        if (status === 'In Class') {
-            bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free for rest of day)`;
+        if (nextClass) {
+            const nextClassStart = nextClass.start_time;
+            if (nextClassStart > '16:30:00') {
+                if (status === 'In Class') {
+                    bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until 16:30)`;
+                } else {
+                    bestVisitingTime = `Now (Free until 16:30)`;
+                }
+            } else {
+                if (status === 'In Class') {
+                    bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until ${nextClassStart.slice(0, 5)})`;
+                } else {
+                    bestVisitingTime = `Now (Free until ${nextClassStart.slice(0, 5)})`;
+                }
+            }
         } else {
-            bestVisitingTime = "Now (Free for rest of day)";
+            if (status === 'In Class') {
+                bestVisitingTime = `After ${currentClass.end_time.slice(0, 5)} (Free until 16:30)`;
+            } else {
+                bestVisitingTime = "Now (Free until 16:30)";
+            }
         }
     }
 
