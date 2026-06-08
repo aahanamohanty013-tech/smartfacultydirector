@@ -93,6 +93,8 @@ const initializeTrie = async () => {
             ALTER TABLE students ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
             ALTER TABLE faculty ADD COLUMN IF NOT EXISTS on_leave BOOLEAN DEFAULT FALSE;
             ALTER TABLE faculty ADD COLUMN IF NOT EXISTS duty_status VARCHAR(255) DEFAULT NULL;
+            ALTER TABLE faculty ADD COLUMN IF NOT EXISTS duty_start_time TIME DEFAULT NULL;
+            ALTER TABLE faculty ADD COLUMN IF NOT EXISTS duty_end_time TIME DEFAULT NULL;
         `);
         console.log('Database migrations applied successfully.');
     } catch (err) {
@@ -149,7 +151,8 @@ const calculateAvailability = (timetables, faculty) => {
         };
     }
 
-    if (faculty && faculty.duty_status) {
+    // If duty_status is set but no times are set, treat as all-day duty
+    if (faculty && faculty.duty_status && (!faculty.duty_start_time || !faculty.duty_end_time)) {
         return {
             status: 'Not Available',
             currentDetails: faculty.duty_status,
@@ -182,12 +185,29 @@ const calculateAvailability = (timetables, faculty) => {
         };
     }
 
-    // 1. Check if currently in class (only relevant if during working hours)
-    const currentClass = timetables.find(t =>
-        t.day_of_week === currentDay &&
-        currentTimeStr >= t.start_time &&
-        currentTimeStr <= t.end_time
-    );
+    // Add duty to classes list for availability optimization if it is on the current day
+    const todaysClasses = timetables
+        .filter(t => t.day_of_week === currentDay)
+        .map(t => ({ ...t, is_duty: false }))
+        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+    if (faculty && faculty.duty_status && faculty.duty_start_time && faculty.duty_end_time) {
+        todaysClasses.push({
+            start_time: faculty.duty_start_time,
+            end_time: faculty.duty_end_time,
+            course_name: faculty.duty_status,
+            is_duty: true
+        });
+        todaysClasses.sort((a, b) => a.start_time.localeCompare(b.start_time));
+    }
+
+    // 1. Check if currently in class or on duty (only relevant if during working hours)
+    const currentMins = timeToMinutes(currentTimeStr);
+    const currentActivityItem = todaysClasses.find(t => {
+        const startMins = timeToMinutes(t.start_time);
+        const endMins = timeToMinutes(t.end_time);
+        return currentMins >= startMins && currentMins <= endMins;
+    });
 
     let status = 'Likely Available';
     let currentDetails = 'No class scheduled right now.';
@@ -195,23 +215,28 @@ const calculateAvailability = (timetables, faculty) => {
     if (isBeforeWorkingHours) {
         status = 'Not Available';
         currentDetails = 'Outside Working Hours';
-    } else if (currentClass) {
-        status = 'In Class';
-        currentDetails = `Class: ${currentClass.course_name} (${currentClass.start_time.slice(0, 5)} - ${currentClass.end_time.slice(0, 5)})`;
+    } else if (currentActivityItem) {
+        if (currentActivityItem.is_duty) {
+            status = 'Not Available';
+            currentDetails = `${currentActivityItem.course_name} (${currentActivityItem.start_time.slice(0, 5)} - ${currentActivityItem.end_time.slice(0, 5)})`;
+        } else {
+            status = 'In Class';
+            currentDetails = `Class: ${currentActivityItem.course_name} (${currentActivityItem.start_time.slice(0, 5)} - ${currentActivityItem.end_time.slice(0, 5)})`;
+        }
     }
 
     // 2. Find Best Visiting Time (Next Free Slot)
-    const todaysClasses = timetables
-        .filter(t => t.day_of_week === currentDay)
-        .sort((a, b) => a.start_time.localeCompare(b.start_time));
-
-    // Start looking from 09:00:00 if before working hours, otherwise current time
     const evalTimeStr = isBeforeWorkingHours ? '09:00:00' : currentTimeStr;
 
     // Find the first free time T >= evalTimeStr
     let T = evalTimeStr;
     while (true) {
-        const occupyingClass = todaysClasses.find(c => T >= c.start_time && T < c.end_time);
+        const tMins = timeToMinutes(T);
+        const occupyingClass = todaysClasses.find(c => {
+            const startMins = timeToMinutes(c.start_time);
+            const endMins = timeToMinutes(c.end_time);
+            return tMins >= startMins && tMins < endMins;
+        });
         if (occupyingClass) {
             T = occupyingClass.end_time;
         } else {
@@ -387,13 +412,15 @@ app.put('/api/faculty/:id', async (req, res) => {
         'research_interests', 
         'bio', 
         'on_leave', 
-        'duty_status'
+        'duty_status',
+        'duty_start_time',
+        'duty_end_time'
     ];
     
     for (const field of allowedFields) {
         if (fields[field] !== undefined) {
             let val = fields[field];
-            if (field === 'duty_status' && val === '') {
+            if ((field === 'duty_status' || field === 'duty_start_time' || field === 'duty_end_time') && val === '') {
                 val = null; // Clear if empty string
             }
             updates.push(`${field} = $${paramIndex}`);

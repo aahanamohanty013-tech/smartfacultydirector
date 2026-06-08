@@ -18,7 +18,9 @@ const Dashboard = () => {
         research_interests: '',
         bio: '',
         on_leave: false,
-        duty_status: ''
+        duty_status: '',
+        duty_start_time: '',
+        duty_end_time: ''
     });
     const [newClass, setNewClass] = useState({
         day_of_week: 'Monday',
@@ -55,7 +57,9 @@ const Dashboard = () => {
                 research_interests: data.research_interests || '',
                 bio: data.bio || '',
                 on_leave: data.on_leave || false,
-                duty_status: data.duty_status || ''
+                duty_status: data.duty_status || '',
+                duty_start_time: data.duty_start_time || '',
+                duty_end_time: data.duty_end_time || ''
             });
 
             // Fetch Walk-in Queue & Appointments
@@ -140,6 +144,25 @@ const Dashboard = () => {
             }
         } catch (err) {
             console.error("Failed to update duty status", err);
+        }
+    };
+
+    const handleSaveDutyTimes = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/faculty/${faculty.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    ...formData, 
+                    duty_start_time: formData.duty_start_time,
+                    duty_end_time: formData.duty_end_time
+                })
+            });
+            if (res.ok) {
+                fetchFacultyData(faculty.id);
+            }
+        } catch (err) {
+            console.error("Failed to update duty times", err);
         }
     };
 
@@ -289,9 +312,9 @@ const Dashboard = () => {
                         {/* Quick Availability & Duty Settings */}
                         <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4 mb-6">
                             <h3 className="text-sm font-bold text-white/70">Quick Status & Duty Settings</h3>
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* On Leave Toggle */}
-                                <div className="flex items-center space-x-3">
+                                <div className="flex items-center justify-between sm:justify-start sm:space-x-3">
                                     <span className="text-sm font-medium text-white/80">On Leave:</span>
                                     <button
                                         onClick={handleToggleLeave}
@@ -306,7 +329,7 @@ const Dashboard = () => {
                                 </div>
                                 
                                 {/* Duty Status Text */}
-                                <div className="flex-1 flex items-center space-x-2">
+                                <div className="flex items-center space-x-2">
                                     <span className="text-sm font-medium text-white/80 whitespace-nowrap">Current Duty:</span>
                                     <input
                                         type="text"
@@ -319,6 +342,32 @@ const Dashboard = () => {
                                     />
                                 </div>
                             </div>
+
+                            {/* Time range inputs shown when duty status is active */}
+                            {formData.duty_status && (
+                                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/5 animate-fade-in">
+                                    <div>
+                                        <label className="block text-[10px] text-white/60 mb-1 font-bold uppercase tracking-wide">Duty Start Time</label>
+                                        <input
+                                            type="time"
+                                            className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white focus:outline-none focus:bg-white/20"
+                                            value={formData.duty_start_time || ''}
+                                            onChange={(e) => setFormData({ ...formData, duty_start_time: e.target.value })}
+                                            onBlur={handleSaveDutyTimes}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-white/60 mb-1 font-bold uppercase tracking-wide">Duty End Time</label>
+                                        <input
+                                            type="time"
+                                            className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white focus:outline-none focus:bg-white/20"
+                                            value={formData.duty_end_time || ''}
+                                            onChange={(e) => setFormData({ ...formData, duty_end_time: e.target.value })}
+                                            onBlur={handleSaveDutyTimes}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {editMode ? (
