@@ -488,6 +488,26 @@ const Dashboard = () => {
                                                         </button>
                                                     </div>
                                                 )}
+                                                {appt.status === 'Scheduled' && (
+                                                    <div className="flex space-x-1">
+                                                        <button 
+                                                            onClick={() => handleDeclineAppointment(appt.id)}
+                                                            className="p-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-bold px-2.5 transition"
+                                                        >
+                                                            Decline
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {appt.status === 'Declined' && (
+                                                    <div className="flex space-x-1">
+                                                        <button 
+                                                            onClick={() => handleApproveAppointment(appt.id)}
+                                                            className="p-1 bg-green-600 hover:bg-green-700 text-white rounded text-[11px] font-bold px-2.5 transition"
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );
