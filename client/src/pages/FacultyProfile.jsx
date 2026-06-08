@@ -193,6 +193,32 @@ const FacultyProfile = () => {
                     </div>
                 </div>
 
+                {/* Leave and Duty Alert Banners */}
+                {faculty.on_leave && (
+                    <div className="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-2xl flex items-center space-x-3 shadow-sm">
+                        <span className="text-2xl">🚨</span>
+                        <div>
+                            <div className="font-bold">Faculty is On Leave</div>
+                            <div className="text-sm opacity-90">This faculty member is currently on leave and will not be available for meetings.</div>
+                        </div>
+                    </div>
+                )}
+
+                {!faculty.on_leave && faculty.duty_status && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-900 px-6 py-4 rounded-2xl flex items-center space-x-3 shadow-sm">
+                        <span className="text-2xl">📌</span>
+                        <div>
+                            <div className="font-bold">Special Duty Scheduled Today</div>
+                            <div className="text-sm opacity-90">
+                                Current Activity: <span className="font-semibold">{faculty.duty_status}</span>
+                                {faculty.duty_start_time && faculty.duty_end_time && (
+                                    <span> from <span className="font-semibold">{faculty.duty_start_time.slice(0, 5)}</span> to <span className="font-semibold">{faculty.duty_end_time.slice(0, 5)}</span></span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Biography & Research Section */}
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                     <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Biography & Research Interests</h3>

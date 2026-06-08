@@ -314,14 +314,15 @@ const Dashboard = () => {
                             <h3 className="text-sm font-bold text-white/70">Quick Status & Duty Settings</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* On Leave Toggle */}
-                                <div className="flex items-center justify-between sm:justify-start sm:space-x-3">
-                                    <span className="text-sm font-medium text-white/80">On Leave:</span>
+                                <div className="flex flex-col space-y-1">
+                                    <span className="text-xs font-semibold text-white/60 uppercase tracking-wide">On Leave Status</span>
                                     <button
+                                        type="button"
                                         onClick={handleToggleLeave}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 shadow-md ${
+                                        className={`w-full py-2 rounded-lg text-xs font-bold transition-all duration-300 shadow-md ${
                                             formData.on_leave
                                                 ? 'bg-red-500 text-white shadow-red-500/30'
-                                                : 'bg-white/10 text-white/70 hover:bg-white/20'
+                                                : 'bg-white/10 text-white/70 hover:bg-white/20 border border-white/10'
                                         }`}
                                     >
                                         {formData.on_leave ? '🔴 Yes (On Leave)' : '⚪ No (Active)'}
@@ -329,12 +330,12 @@ const Dashboard = () => {
                                 </div>
                                 
                                 {/* Duty Status Text */}
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-sm font-medium text-white/80 whitespace-nowrap">Current Duty:</span>
+                                <div className="flex flex-col space-y-1">
+                                    <span className="text-xs font-semibold text-white/60 uppercase tracking-wide">Current Duty (Meeting/Exam)</span>
                                     <input
                                         type="text"
                                         placeholder="e.g. Exam Duty, Meeting"
-                                        className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:bg-white/20 transition"
+                                        className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:bg-white/20 transition"
                                         value={formData.duty_status || ''}
                                         onChange={handleDutyStatusChange}
                                         onBlur={handleSaveDutyStatus}
