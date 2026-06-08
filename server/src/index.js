@@ -55,6 +55,11 @@ const initializeTrie = async () => {
             if (faculty.aliases && Array.isArray(faculty.aliases)) {
                 faculty.aliases.forEach(alias => {
                     trie.insert(alias, faculty);
+                    // Normalize and strip common title prefixes (e.g. Dr. PH -> PH)
+                    const cleanedAlias = alias.replace(/^(Dr\.|Prof\.|Mrs\.|Mr\.|Ms\.)\s+/i, '').trim();
+                    if (cleanedAlias !== alias) {
+                        trie.insert(cleanedAlias, faculty);
+                    }
                 });
             }
 
